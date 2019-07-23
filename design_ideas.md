@@ -35,19 +35,16 @@
 |school|events|int array|学校获取名次的项目id列表|
 |student|score|int|运动员总积分|
 |student|rank|int|运动员总积分排名|
-|student|score|int array|运动员获取名次的项目id列表|
+|student|events|int array|运动员获取名次的项目id列表|
 |event|count|int|运动项目参加人数|
-|event|name|string|运动项目名称|
-|event|gender|char|性别|
-|event|grade|int array|前5名的赋分|
-|event|students|int array|在运动项目中获取名次的学校id|
+|event|schools|int array|在运动项目中获取名次的学校id|
 
 ### 一些说明和完整性约束
 
 - 学校编号从1开始
 - 本系统不考虑男女都可以参加的项目与团体参加的项目
-- 名次越高赋分越高
-- 处于正数赋分之外的运动员属于冗余记录，不能存储与查询
+- 名次越靠前赋分越高
+- 不赋分的运动员属于冗余记录，不存储与查询
 - 基于系统的功能，并不需要存储成绩
 - 如果一个人获取多项名次，学校获取名次的人数只计一次
 
@@ -78,6 +75,8 @@
    按照基础数据存储，学校需要128B，运动员需要64+1+2=67B，项目需要128+1+5+10=144B。
 
    则紧凑不压缩最大数据文件大小约为 128 \* 256 + 67 \* 1280 + 144 \* 256 = 155392B ≈ 155KB
+
+    如果按照扩展数据存储，则其大小计算变得较为复杂，难以使用定长存储，这里不再计算
 
    所以说，本问题数据规模完全大不起来，（大概）完全不需要上B+什么的，直接内存hash就完事了
 
@@ -145,17 +144,92 @@
 
 ## DSL语法词汇表
 
-- Load(path)
-- 查询
-  1. student.filter(id<3).asc(id)
-  2. student.filter(id<3).desc(id).skip(num).limit(num)
-  3. 或者使用eq(id,3).regex(name,"学校").contain(name,"学校"）（题外话，关于”如何用正则表达式检验一个正则表达式“，可以看[这里](https://stackoverflow.com/questions/172303/is-there-a-regular-expression-to-detect-a-valid-regular-expression)）
-  4. 查询结果超出一定行数不会显示？
-  5. 导出文件：在最后加上.csv()等等
-- 插入
-  - student.insert(id,name,..)
-- 删除
-  - student.filter().delete()
+1. 主语
+
+    |写法|意义|
+    |---|---|
+    |school|表示查询学校|
+    |student|表示查询学生|
+    |event|表示查询项目|
+
+2. 投影
+
+    |写法|意义|
+    |---|---|
+    |(id, name, ...)|写在主语之后，表示投影|
+
+3. 筛选
+
+    |写法|意义|
+    |---|---|
+    |.id(`num`)|用id选择|
+    |.eq(id,`num`)|相等筛选|
+    |.gt(id,`num`)|大于筛选|
+    |.lt(id,`num`)|小于筛选|
+    |.ne(id,`num`)|不等于筛选|
+    |.gte(id,`num`)|大于等于筛选|
+    |.lte(id,`num`)|小于等于筛选|
+    |.contain(name,"`string`")|字符串含有筛选|
+    |.regex(name,"`pattern`")|正则表达式筛选|
+    |.male()|男性筛选，学校不可用|
+    |.female()|女性筛选，学校不可用|
+
+4. 排序
+
+    注：多个排序方式将以更后面的为更优先的排序依据
+
+    |写法|意义|
+    |---|---|
+    |.asc(id)|按照升序排列|
+    |.desc(id)|按照降序排列|
+
+5. 显示与流
+
+    |写法|意义|
+    |---|---|
+    |.skip(`num`)|在limit之前跳过的条数|
+    |.limit(`num`)|最多显示的条数|
+    |.csv("`path`")|将结果导出为csv文件|
+
+6. 全局函数
+
+    |写法|意义|
+    |---|---|
+    |load("`path`")|导入合法XML文件|
+    |clear()/clear|清屏|
+    |help(`command`)|查看某条命令的帮助|
+    |exit()/exit|离开|
+
+7. 更新
+
+    |写法|意义|
+    |---|---|
+    |.name("`string`")|修改名字|
+    |student.school(`int`)|修改所属学校id|
+    |event.grade(`int`,`int`,`int`,`int`,`int`)|修改运动项目的赋分
+    |event.students(`int`,`int`,`int`,`int`,`int`)|按从1到5修改运动项目名次，若缺少需填0|
+
+8. 语序
+
+    - 除了全局函数，必须要写主语
+    - 只有主语相当于没有筛选条件
+    - 筛选必须写在主语（含投影）后
+    - 排序必须写在筛选后
+    - 显示必须写在排序与筛选之后
+    - 更新必须写在最后
+    - 投影对更新无效
+    - 流必须写在最后
+
+9. 数据类型
+
+    |数据类型|说明|字段|
+    |---|---|---|
+    |int|可以用来和常数比较的字段|id, count, score, rank|
+    |string|可以使用正则表达式的字段|name|
+    |array|只能出现在投影中的数组字段|grade, students, schools, events|
+    |other|其它可以出现在投影中的字段|gender|
+
+（题外话，关于”如何用正则表达式检验一个正则表达式“，可以看[这里](https://stackoverflow.com/questions/172303/is-there-a-regular-expression-to-detect-a-valid-regular-expression)）
 
 ## 文件存储结构
 
