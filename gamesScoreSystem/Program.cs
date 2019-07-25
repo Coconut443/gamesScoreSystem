@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 
+
 namespace gamesScoreSystem
 {
     class Program
@@ -14,6 +15,27 @@ namespace gamesScoreSystem
         {
             Welcome();
 
+            TestFieldType();
+            
+            Console.ReadKey();
+        }
+
+        static void TestFieldType()
+        {
+            FieldType fieldType = FieldTypeFactory.create("char(10)", 10);
+            try
+            {
+                var charType = fieldType as CharType;
+                charType[1] = "char";
+                Console.WriteLine(charType[1]);
+            }catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        static void TestGrammar()
+        {
             string input = "{1,2,{34},{4,5}}";
 
             //新建一个输入流
@@ -37,9 +59,9 @@ namespace gamesScoreSystem
 
             Console.WriteLine(tree.ToStringTree(parser));
             //Console.WriteLine(result);
-            
-            Console.ReadKey();
+
         }
+
         static void Welcome()
         {
             Console.WriteLine("Welcome to Games Score System. " +
