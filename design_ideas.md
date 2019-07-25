@@ -21,14 +21,16 @@
 |event|id|int|运动项目编号|
 |event|name|string|运动项目名称|
 |event|gender|char|性别|
-|event|grade|int array|前5名的赋分|
-|event|students|int array|前5名运动员的id|
+|rankinfo|eventid|运动项目号|
+|rankinfo|studentid|学生id号|
+|rankinfo|rank|排名|
+|rankinfo|score|分数|
 
 ### 扩展实体集
 
 |实体|属性名|属性类型|属性说明|
 |---|---|---|---|
-|school|count|int|学校获取名次的人数|
+|school|student_count|int|学校获取名次的人数|
 |school|score|int|学校总积分|
 |school|rank|int|学校总积分排名|
 |school|students|int array|学校获取名次的运动员id列表|
@@ -36,21 +38,23 @@
 |student|score|int|运动员总积分|
 |student|rank|int|运动员总积分排名|
 |student|events|int array|运动员获取名次的项目id列表|
-|event|count|int|运动项目参加人数|
+|event|student_count|int|运动项目参加人数|
+|event|students|int array|在运动项目中获取名次的学生id|
+|event|students|int array|在运动项目中的赋分规则|
 |event|schools|int array|在运动项目中获取名次的学校id|
 
 ### 一些说明和完整性约束
 
-- 学校编号从1开始
+- 所有编号从1开始
 - 本系统不考虑男女都可以参加的项目与团体参加的项目
-- 名次越靠前赋分越高
 - 不赋分的运动员属于冗余记录，不存储与查询
 - 基于系统的功能，并不需要存储成绩
-- 如果一个人获取多项名次，学校获取名次的人数只计一次
 
 ## 数据规模分析
 
 本系统需要分析的关键大概有三点：学校数、运动员数、运动项目数
+
+注意，由于系统结构的大幅修改，以下分析已经不适用，但数量级仍可参考
 
 1. 学校数
 
@@ -151,6 +155,7 @@
     |school|表示查询学校|
     |student|表示查询学生|
     |event|表示查询项目|
+    |rankinfo|表示查询排名信息|
 
 2. 投影
 
@@ -171,8 +176,6 @@
     |.lte(id,`num`)|小于等于筛选|
     |.contain(name,"`string`")|字符串含有筛选|
     |.regex(name,"`pattern`")|正则表达式筛选|
-    |.male()|男性筛选，学校不可用|
-    |.female()|女性筛选，学校不可用|
 
 4. 排序
 
@@ -196,18 +199,15 @@
     |写法|意义|
     |---|---|
     |load("`path`")|导入合法XML文件|
-    |clear()/clear|清屏|
+    |clear()|清屏|
     |help(`command`)|查看某条命令的帮助|
-    |exit()/exit|离开|
+    |exit()|离开|
 
 7. 更新
 
     |写法|意义|
     |---|---|
-    |.name("`string`")|修改名字|
-    |student.school(`int`)|修改所属学校id|
-    |event.grade(`int`,`int`,`int`,`int`,`int`)|修改运动项目的赋分
-    |event.students(`int`,`int`,`int`,`int`,`int`)|按从1到5修改运动项目名次，若缺少需填0|
+    |注：此段已被爆破||
 
 8. 语序
 
@@ -229,7 +229,255 @@
     |array|只能出现在投影中的数组字段|grade, students, schools, events|
     |other|其它可以出现在投影中的字段|gender|
 
+10. 计算与处理
+
+    |写法|意义|
+    |---|---|
+    |.sum()|对数组求和|
+    |.count()|求数组的长度|
+    |.rank()|对该字段所有行计算值，并求排名|
+
 （题外话，关于”如何用正则表达式检验一个正则表达式“，可以看[这里](https://stackoverflow.com/questions/172303/is-there-a-regular-expression-to-detect-a-valid-regular-expression)）
+
+## 输入格式
+
+本项目采用全局函数load导入XML文件来实现数据与元数据的导入（所以其实是有门槛的），XML文件的结构如下：
+
+1. 设置部分：该部分设置本系统的部分属性
+2. 元数据部分：该部分给出数据的组织形式
+3. 数据部分：该部分给出所有数据
+
+本系统的XML文件格式类似下面所述：
+
+```XML
+<?xml version="1.0" encoding="UTF-8" ?>
+<system>
+    <setting>
+        <title>运动会分数统计系统设计思路</title>
+    </setting>
+    <metadata>
+        <entity name="school">
+            <field>
+                <name>name</name>
+                <type>char(32)</type>
+            </field>
+            <field>
+                <name>students</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>student.eq(schoolid,$id)</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>events</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>rankinfo(eventid).eq(studentid,student.eq(school,$id))</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>student_count</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>student.eq(schoolid,$id).count()</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>score</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>rankinfo(score).eq(studentid,student.eq(schoolid,$id)).sum()</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>rank</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>rankinfo(score).eq(studentid,student.eq(schoolid,$id)).sum().rank()</data>
+                    </constraint>
+                </constraints>
+            </field>
+        </entity>
+        <entity name="student">
+            <field>
+                <name>name</name>
+                <type>char(16)</type>
+            </field>
+            <field>
+                <name>gender</name>
+                <type>char(1)</type>
+                <constraints>
+                    <constraint type="in">
+                        <data>男</data>
+                        <data>女</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>schoolid</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="foreign">
+                        <data>school</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>events</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>rankinfo(eventid).eq(studentid,$id)</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>score</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>rankinfo(score).eq(studentid,$id).sum()</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>rank</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>rankinfo(score).eq(studentid,$id).sum().rank()</data>
+                    </constraint>
+                </constraints>
+            </field>
+        </entity>
+        <entity name="event">
+            <field>
+                <name>name</name>
+                <type>char(32)</type>
+            </field>
+            <field>
+                <name>gender</name>
+                <type>char(1)</type>
+                <constraints>
+                    <constraint type="in">
+                        <data>男</data>
+                        <data>女</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>student_count</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>rankinfo(studentid).eq(eventid,$id).count()</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>students</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>rankinfo(studentid).eq(eventid,$id).count()</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>schools</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="virtual">
+                        <data>student(schoolid).id(rankinfo(studentid).eq(eventid,$id))</data>
+                    </constraint>
+                </constraints>
+            </field>
+        </entity>
+        <entity name="rankinfo">
+            <field>
+                <name>eventid</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="foreign">
+                        <data>event</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>studentid</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="foreign">
+                        <data>student</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>rank</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="between">
+                        <data>1</data>
+                        <data>5</data>
+                    </constraint>
+                </constraints>
+            </field>
+            <field>
+                <name>score</name>
+                <type>int</type>
+                <constraints>
+                    <constraint type="between">
+                        <data>0</data>
+                        <data>100</data>
+                    </constraint>
+                </constraints>
+            </field>
+        </entity>
+    </metadata>
+    <data>
+        <schools>
+            <school>
+                <name>测试学校</name>
+            </school>
+        </schools>
+        <students>
+            <student>
+                <name>测试人员</name>
+                <gender>男</gender>
+                <schoolid>1</schoolid>
+            </student>
+        </students>
+        <events>
+            <event>
+                <name>测试运动项目</name>
+                <gender>男<gender>
+            </event>
+        </events>
+        <rankinfos>
+            <rankinfo>
+                <eventid>1</eventid>
+                <studentid>1</studentid>
+                <rank>1</rank>
+                <score>6<score>
+            </rankinfo>
+        </rankinfos>
+    </data>
+</system>
+```
+
+## 系统缺陷
+
+- 本系统不支持更详细的完整性定义，例如，无法检查某学生是否在某一比赛中获得两次排名，无法检查学生是否只参加了对应性别的比赛。这些都是有希望修复的。
+- 本系统由于没有连接查询机制，无法查询特定数据组合。例如，无法同时查询在某场比赛中获得前五名的选手姓名和他/她获得的分数。
 
 ## 文件存储结构
 
