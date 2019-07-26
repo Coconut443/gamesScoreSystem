@@ -57,7 +57,7 @@
     <Compile Include="MyTestListener.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PublicFunction.cs" />
+    <Compile Include="Session.cs" />
     <Compile Include="PublicValue.cs" />
     <Compile Include="Test.g4.lexer.cs">
       <DependentUpon>Test.g4</DependentUpon>
