@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <system>
-    <setting>
+    <settings>
         <title>运动会分数统计系统设计思路</title>
-    </setting>
+    </settings>
     <metadata>
         <entity name="school">
             <field>
@@ -191,7 +191,7 @@
             </field>
         </entity>
     </metadata>
-    <data>
+    <entitydata>
         <schools>
             <school>
                 <name>测试学校</name>
@@ -210,13 +210,13 @@
                 <gender>男</gender>
             </event>
         </events>
-    </rankinfos>
-    <rankinfo>
-        <eventid>1</eventid>
-        <studentid>1</studentid>
-        <rank>1</rank>
-        <score>6<score>
+        <rankinfos>
+            <rankinfo>
+                <eventid>1</eventid>
+                <studentid>1</studentid>
+                <rank>1</rank>
+                <score>6</score>
             </rankinfo>
         </rankinfos>
-    </data>
+    </entitydata>
 </system>

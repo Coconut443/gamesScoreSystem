@@ -37,7 +37,7 @@ namespace gamesScoreSystem
                     {
                         int v = int.Parse(s);
                         vs.Add(v);
-                    }catch(Exception ex)
+                    }catch(Exception)
                     {
                         throw new Exception("字段" + field.Name + ":对于int类型指定的In约束包含无法转换为Int型的数据" + s);
                     }
@@ -93,7 +93,7 @@ namespace gamesScoreSystem
                         r = t;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     throw new Exception("字段"+field.Name+":对于int类型指定的between约束包含无法转换为int型的数据");
                 }
@@ -138,7 +138,7 @@ namespace gamesScoreSystem
                         int v = int.Parse(s);
                         vs.Add(v);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         throw new Exception("字段" + field.Name + ":对于int类型指定的In约束包含无法转换为Int型的数据" + s);
                     }
@@ -193,7 +193,7 @@ namespace gamesScoreSystem
                         int v = int.Parse(s);
                         vs.Add(v);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         throw new Exception("字段" + field.Name + ":对于int类型指定的In约束包含无法转换为Int型的数据" + s);
                     }

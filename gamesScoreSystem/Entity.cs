@@ -9,9 +9,11 @@ namespace gamesScoreSystem
     class Entity
     {
         string name;
-        public Entity(string name)
+        int length;
+        public Entity(string name,int length)
         {
             this.name = name;
+            this.length = length;
         }
         Field[] fields;
         public void Check()
@@ -40,8 +42,9 @@ namespace gamesScoreSystem
                 }
             }
         }
-        
+
         public string Name { get => name; set => name = value; }
         internal Field[] Fields { get => fields; set => fields = value; }
+        public int Length { get => length; }
     }
 }

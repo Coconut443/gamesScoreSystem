@@ -19,6 +19,7 @@ namespace gamesScoreSystem
             }
             else throw new ArgumentOutOfRangeException("length", "数量" + length + "超出范围1~" + PublicValue.MaxLen + "，或许你可以在设置中改变最大值");
         }
+        abstract public string this[int index] { get;set; }
         public int Length { get => length; }
         public string Name { get => name; set => name = value; }
         internal Constraint[] Constraints { get => constraints; set => constraints = value; }
@@ -31,13 +32,13 @@ namespace gamesScoreSystem
         {
             data = new int[length];
         }
-        public int this[int index]
+        public override string this[int index]
         {
             get
             {
                 if (index > 0 && index <= Length)
                 {
-                    return Data[index - 1];
+                    return Data[index - 1].ToString();
                 }
                 else throw new IndexOutOfRangeException("Id\"" + index + "\"超出范围1~" + Length);
             }
@@ -45,7 +46,14 @@ namespace gamesScoreSystem
             {
                 if (index > 0 && index <= Length)
                 {
-                    Data[index - 1] = value;
+                    try
+                    {
+                        Data[index - 1] = int.Parse(value);
+                    }
+                    catch (Exception)
+                    {
+                        throw new Exception("为int型字段" + Name + "赋的值" + value + "不能被转化为int");
+                    }
                 }
                 else throw new IndexOutOfRangeException("Id\"" + index + "\"超出范围1~" + Length);
             }
@@ -67,7 +75,7 @@ namespace gamesScoreSystem
             }
             else throw new ArgumentOutOfRangeException("charlen", "数量" + charlen + "超出范围1~" + PublicValue.MaxCharLen + "，或许你可以在设置中改变最大值");
         }
-        public string this[int index]
+        public override string this[int index]
         {
             get
             {
@@ -102,7 +110,7 @@ namespace gamesScoreSystem
         public int Charlen { get => charlen; }
     }
 
-    class FieldTypeFactory
+    class FieldFactory
     {
         public static Field Create(string name, string type, int length, Constraint[] constraints)
         {

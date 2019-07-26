@@ -13,16 +13,21 @@ namespace gamesScoreSystem
     {
         static void Main(string[] args)
         {
-            Welcome();
+            PublicFunction.Welcome();
 
-            TestFieldType();
+            TestLoad();
             
             Console.ReadKey();
         }
 
+        static void TestLoad()
+        {
+            PublicFunction.Load("../../../gameScore.xml");
+        }
+
         static void TestFieldType()
         {
-            Field fieldType = FieldTypeFactory.Create("char(10)", 10);
+            Field fieldType = FieldFactory.Create("charTest","char(10)", 10,new Constraint[0]);
             try
             {
                 var charType = fieldType as CharField;
@@ -62,14 +67,6 @@ namespace gamesScoreSystem
 
         }
 
-        static void Welcome()
-        {
-            Console.WriteLine("Welcome to Games Score System. " +
-                "Commands end with endline.\n" +
-                "Your can only open one instance.\n" +
-                "System version: " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + "\n" +
-                "\nCopyright (c) 2019, xyqlx. All rights reserved.\n" +
-                "\nType 'help' for help. Type 'clear' to clear the screen.\n");
-        }
+        
     }
 }
