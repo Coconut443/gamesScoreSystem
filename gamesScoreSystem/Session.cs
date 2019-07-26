@@ -8,15 +8,42 @@ using System.Xml.Linq;
 
 namespace gamesScoreSystem
 {
-    class PublicFunction
+    class Session
     {
+        Dictionary<string, string> dataBasePath;
+
+        public void Start()
+        {
+            Welcome();
+            LoadSettings();
+            Load("../../../gameScore.xml");
+        }
+
+        private void LoadSettings()
+        {
+            dataBasePath = new Dictionary<string, string>();
+        }
+
         //加载XML文档
         //TODO:适当优化当前的混沌写法，使之更具有可读性
         //TODO:为XML文档编写验证文件或方法
-        public static DataBase Load(string path)
+        //TODO:添加关键词过滤器，不允许与关键词一致
+        public DataBase Load(string path)
         {
             //检验文件路径的合法性
             XmlReader reader = XmlReader.Create(path);
+            //检查XML中的数据库是否与已有数据库重名
+            reader.ReadToFollowing("database");
+            string dataBaseName = reader.GetAttribute("name");
+            if (dataBasePath.ContainsKey(dataBaseName))
+            {
+                throw new Exception("已有与导入的数据库" + dataBaseName + "重名的数据库");
+            }
+            else
+            {
+                //TODO:创建数据文件，etc.
+                dataBasePath[dataBaseName] = "";
+            }
             //遍历XML文件两次，第一次读取各实体的字段数与数量，第二次读取数据
             Dictionary<string, int> entityFieldNums = new Dictionary<string, int>();
             Dictionary<string, int> entityNums = new Dictionary<string, int>();
@@ -139,7 +166,13 @@ namespace gamesScoreSystem
                                 {
                                     string constraintType = node.Attribute("type").Value;
                                     string[] data = node.Descendants("data").Select(x => x.Value).ToArray();
-                                    constraints[k++] = ConstraintFactory.Create(constraintType,data);
+                                    var constraint = ConstraintFactory.Create(constraintType,data);
+                                    if(constraint is VirtualConstraint)
+                                    {
+                                        var virtualConstraint = constraint as VirtualConstraint;
+                                        virtualConstraint.RefDataBase = dataBase;
+                                    }
+                                    constraints[k++] = constraint;
                                 }
                             }
                         }
@@ -172,19 +205,19 @@ namespace gamesScoreSystem
             return dataBase;
         }
 
-        public static void Clear()
+        public void Clear()
         {
             Console.Clear();
         }
 
-        public static void Exit()
+        public void Exit()
         {
             Console.WriteLine("bye");
             Console.ReadKey();
             Environment.Exit(0);
         }
 
-        public static void Welcome()
+        public void Welcome()
         {
             Console.WriteLine("Welcome to Games Score System. " +
                 "Commands end with endline.\n" +

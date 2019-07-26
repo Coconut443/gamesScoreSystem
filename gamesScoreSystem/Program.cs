@@ -13,16 +13,10 @@ namespace gamesScoreSystem
     {
         static void Main(string[] args)
         {
-            PublicFunction.Welcome();
-
-            TestLoad();
+            Session session = new Session();
+            session.Start();
             
             Console.ReadKey();
-        }
-
-        static void TestLoad()
-        {
-            PublicFunction.Load("../../../gameScore.xml");
         }
 
         static void TestFieldType()

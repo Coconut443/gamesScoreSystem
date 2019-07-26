@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<system>
+<database name="sport">
     <settings>
-        <title>运动会分数统计系统设计思路</title>
+        <title>运动会分数统计系统</title>
     </settings>
     <metadata>
         <entity name="school">
@@ -219,4 +219,4 @@
             </rankinfo>
         </rankinfos>
     </entitydata>
-</system>
+</database>

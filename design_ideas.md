@@ -202,6 +202,9 @@
     |clear()|清屏|
     |help(`command`)|查看某条命令的帮助|
     |exit()|离开|
+    |show(`database|entity|entity.field`)|查看数据库/实体/字段的属性|
+    |use(`database`)|转移到数据库|
+    |drop(`database`)|删库|
 
 7. 更新
 
