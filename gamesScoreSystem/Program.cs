@@ -22,10 +22,10 @@ namespace gamesScoreSystem
 
         static void TestFieldType()
         {
-            FieldType fieldType = FieldTypeFactory.create("char(10)", 10);
+            Field fieldType = FieldTypeFactory.Create("char(10)", 10);
             try
             {
-                var charType = fieldType as CharType;
+                var charType = fieldType as CharField;
                 charType[1] = "char";
                 Console.WriteLine(charType[1]);
             }catch(Exception ex)

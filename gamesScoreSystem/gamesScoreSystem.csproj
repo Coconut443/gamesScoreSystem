@@ -49,11 +49,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FieldType.cs" />
+    <Compile Include="Constraint.cs" />
+    <Compile Include="Entity.cs" />
+    <Compile Include="Field.cs" />
     <Compile Include="MyGrammarVistor.cs" />
     <Compile Include="MyTestListener.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PublicFunction.cs" />
+    <Compile Include="PublicValue.cs" />
     <Compile Include="Test.g4.lexer.cs">
       <DependentUpon>Test.g4</DependentUpon>
     </Compile>
