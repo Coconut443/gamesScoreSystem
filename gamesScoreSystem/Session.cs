@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,17 +12,45 @@ namespace gamesScoreSystem
     class Session
     {
         Dictionary<string, string> dataBasePath;
+        QueryInterpreter queryInterpreter;
+        Stopwatch stopwatch = new Stopwatch();
 
         public void Start()
         {
             Welcome();
             LoadSettings();
+            queryInterpreter = new QueryInterpreter();
+            //TODO:删除下行（用于方便测试）
             Load("../../../gameScore.xml");
+            while (true)
+            {
+                Cycle();
+            }
+        }
+
+        public void Cycle()
+        {
+            Console.Write(DateTime.Now.ToShortTimeString() + " > ");
+            while (true)
+            {
+                string input = Console.ReadLine();
+                stopwatch.Reset();
+                stopwatch.Start();
+                if (queryInterpreter.Interpret(input))
+                {
+                    stopwatch.Stop();
+                    Console.WriteLine(String.Format("执行时间{0:0.00}ms", stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+                    break;
+                }
+                Console.Write("      > ");
+            }
+            
         }
 
         private void LoadSettings()
         {
             dataBasePath = new Dictionary<string, string>();
+            //TODO:添加加载/创建文件的操作
         }
 
         //加载XML文档
@@ -48,9 +77,9 @@ namespace gamesScoreSystem
             Dictionary<string, int> entityFieldNums = new Dictionary<string, int>();
             Dictionary<string, int> entityNums = new Dictionary<string, int>();
             //读取实体的字段数
-            reader.ReadToFollowing("metadata");
+            reader.ReadToFollowing("entities");
             reader.Read();
-            while (!reader.EOF && reader.Name != "metadata")
+            while (!reader.EOF && reader.Name != "entities")
             {
                 do
                 {
@@ -75,6 +104,14 @@ namespace gamesScoreSystem
                     if (reader.Name != "")
                         break;
                 } while (reader.Read());
+            }
+            //读取数据库级字段的数量
+            reader.ReadToFollowing("fields");
+            entityFieldNums["database"] = 0;
+            while(!reader.EOF && reader.Name != "fields")
+            {
+                if (reader.NodeType == XmlNodeType.Element && reader.Name == "field")
+                    entityFieldNums["database"]++;
             }
             //读取实体的数量
             reader.ReadToFollowing("entitydata");
@@ -123,7 +160,7 @@ namespace gamesScoreSystem
             }
             DataBase dataBase = new DataBase();
             //读取实体与字段
-            reader.ReadToFollowing("metadata");
+            reader.ReadToFollowing("entities");
             int entityCnt = entityNums.Count;
             dataBase.Entities = new Entity[entityCnt];
             int entityIndex = 0;
@@ -146,7 +183,6 @@ namespace gamesScoreSystem
                     
                     while(reader.Read() && !reader.EOF && reader.Name != "field")
                     {
-                        Console.WriteLine(reader.Name, reader.Value);
                         if (reader.Name == "name" && reader.NodeType == XmlNodeType.Element)
                             name = reader.ReadInnerXml();
                         else if (reader.Name == "type" && reader.NodeType == XmlNodeType.Element)
@@ -154,13 +190,13 @@ namespace gamesScoreSystem
                         else if(reader.Name == "constraints" && reader.NodeType == XmlNodeType.Element)
                         {
                             //几种XML方法的混写主要是由于完全不熟练（
-                            XElement element = XElement.ReadFrom(reader) as XElement;
+                            XElement element = XNode.ReadFrom(reader) as XElement;
                             if (element == null)
                                 constraints = new Constraint[0];
                             else
                             {
                                 XElement[] constraintNodes = element.Descendants("constraint").ToArray();
-                                constraints = new Constraint[constraintNodes.Count()];
+                                constraints = new Constraint[constraintNodes.Length];
                                 int k = 0;
                                 foreach(var node in constraintNodes)
                                 {
@@ -186,6 +222,32 @@ namespace gamesScoreSystem
                 entity.Fields = fields;
                 dataBase.Entities[entityIndex++] = entity;
             }
+            //读取数据库级字段
+            reader.ReadToFollowing("fields");
+            XElement fieldsElement = XNode.ReadFrom(reader) as XElement;
+            var fieldNodes = fieldsElement.Descendants("field").ToArray();
+            int dbFieldNum = fieldNodes.Length;
+            dataBase.Fields = new Field[dbFieldNum];
+            int dbFieldIndex = 0;
+            foreach(var fieldNode in fieldNodes)
+            {
+                var constraintNodes = fieldNode.Descendants("constraint").ToArray();
+                var constraints = new Constraint[constraintNodes.Length];
+                int constraintsIndex = 0;
+                foreach(var node in constraintNodes)
+                {
+                    string constraintType = node.Attribute("type").Value;
+                    string[] data = node.Descendants("data").Select(x => x.Value).ToArray();
+                    var constraint = ConstraintFactory.Create(constraintType, data);
+                    if (constraint is VirtualConstraint)
+                    {
+                        var virtualConstraint = constraint as VirtualConstraint;
+                        virtualConstraint.RefDataBase = dataBase;
+                    }
+                    constraints[constraintsIndex++] = constraint;
+                }
+                dataBase.Fields[dbFieldIndex++] = FieldFactory.Create(fieldNode.Descendants("name").First().Value, fieldNode.Descendants("type").First().Value, 1, constraints);
+            }
             //读取数据
             reader.ReadToFollowing("entitydata");
             foreach(Entity entity in dataBase.Entities) {
@@ -196,10 +258,19 @@ namespace gamesScoreSystem
                         if(!Array.Exists(field.Constraints,x=>x is VirtualConstraint))
                         {
                             reader.ReadToFollowing(field.Name);
-                            field[i] = reader.ReadInnerXml(); ;
+                            field[i] = reader.ReadInnerXml();
                         }
                     }
 
+                }
+            }
+            reader.ReadToFollowing("fielddata");
+            foreach(Field field in dataBase.Fields)
+            {
+                if(!Array.Exists(field.Constraints, x=>x is VirtualConstraint))
+                {
+                    reader.ReadToFollowing(field.Name);
+                    field[1] = reader.ReadInnerXml();
                 }
             }
             return dataBase;

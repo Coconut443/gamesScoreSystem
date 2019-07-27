@@ -53,26 +53,26 @@
     <Compile Include="DataBase.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="Field.cs" />
-    <Compile Include="MyGrammarVistor.cs" />
-    <Compile Include="MyTestListener.cs" />
+    <Compile Include="Interpreter.g4.lexer.cs">
+      <DependentUpon>Interpreter.g4</DependentUpon>
+    </Compile>
+    <Compile Include="Interpreter.g4.parser.cs">
+      <DependentUpon>Interpreter.g4</DependentUpon>
+    </Compile>
+    <Compile Include="PreQuery.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QueryInterpreter.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="PublicValue.cs" />
-    <Compile Include="Test.g4.lexer.cs">
-      <DependentUpon>Test.g4</DependentUpon>
-    </Compile>
-    <Compile Include="Test.g4.parser.cs">
-      <DependentUpon>Test.g4</DependentUpon>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="packages.config" />
-    <Antlr4 Include="Test.g4">
+    <Antlr4 Include="Interpreter.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>gamesScoreSystem</CustomToolNamespace>
     </Antlr4>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

@@ -4,210 +4,265 @@
         <title>运动会分数统计系统</title>
     </settings>
     <metadata>
-        <entity name="school">
+        <entities>
+            <entity name="school">
+                <field>
+                    <name>name</name>
+                    <type>char(32)</type>
+                </field>
+                <field>
+                    <name>students</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>student.eq(schoolid,$id)</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>events</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>rankinfo(eventid).eq(studentid,student.eq(schoolid,$id))</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>student_count</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>student.eq(schoolid,$id).count()</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>score</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>rankinfo(score).eq(studentid,student.eq(schoolid,$id)).sum()</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>rank</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>rankinfo(score).eq(studentid,student.eq(schoolid,$id)).sum().rank()</data>
+                        </constraint>
+                    </constraints>
+                </field>
+            </entity>
+            <entity name="student">
+                <field>
+                    <name>name</name>
+                    <type>char(16)</type>
+                </field>
+                <field>
+                    <name>gender</name>
+                    <type>char(1)</type>
+                    <constraints>
+                        <constraint type="in">
+                            <data>男</data>
+                            <data>女</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>schoolid</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="foreign">
+                            <data>school</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>events</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>rankinfo(eventid).eq(studentid,$id)</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>score</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>rankinfo(score).eq(studentid,$id).sum()</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>rank</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>rankinfo(score).eq(studentid,$id).sum().rank()</data>
+                        </constraint>
+                    </constraints>
+                </field>
+            </entity>
+            <entity name="event">
+                <field>
+                    <name>name</name>
+                    <type>char(32)</type>
+                </field>
+                <field>
+                    <name>gender</name>
+                    <type>char(1)</type>
+                    <constraints>
+                        <constraint type="in">
+                            <data>男</data>
+                            <data>女</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>student_count</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>rankinfo(studentid).eq(eventid,$id).count()</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>students</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>rankinfo(studentid).eq(eventid,$id).count()</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>schools</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="virtual">
+                            <data>student(schoolid).id(rankinfo(studentid).eq(eventid,$id))</data>
+                        </constraint>
+                    </constraints>
+                </field>
+            </entity>
+            <entity name="rankinfo">
+                <field>
+                    <name>eventid</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="foreign">
+                            <data>event</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>studentid</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="foreign">
+                            <data>student</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>rank</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="between">
+                            <data>1</data>
+                            <data>5</data>
+                        </constraint>
+                    </constraints>
+                </field>
+                <field>
+                    <name>score</name>
+                    <type>int</type>
+                    <constraints>
+                        <constraint type="between">
+                            <data>0</data>
+                            <data>100</data>
+                        </constraint>
+                    </constraints>
+                </field>
+            </entity>
+        </entities>
+        <fields>
             <field>
-                <name>name</name>
+                <name>builtTime</name>
                 <type>char(32)</type>
             </field>
             <field>
-                <name>students</name>
+                <name>checkGender</name>
                 <type>int</type>
                 <constraints>
                     <constraint type="virtual">
-                        <data>student.eq(schoolid,$id)</data>
+                        <data>student.id(rankinfo(studentid).eq(eventid,event.eq(gender,"男"))).eq(gender,"女").count()</data>
                     </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>events</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>rankinfo(eventid).eq(studentid,student.eq(school,$id))</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>student_count</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>student.eq(schoolid,$id).count()</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>score</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>rankinfo(score).eq(studentid,student.eq(schoolid,$id)).sum()</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>rank</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>rankinfo(score).eq(studentid,student.eq(schoolid,$id)).sum().rank()</data>
-                    </constraint>
-                </constraints>
-            </field>
-        </entity>
-        <entity name="student">
-            <field>
-                <name>name</name>
-                <type>char(16)</type>
-            </field>
-            <field>
-                <name>gender</name>
-                <type>char(1)</type>
-                <constraints>
                     <constraint type="in">
-                        <data>男</data>
-                        <data>女</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>schoolid</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="foreign">
-                        <data>school</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>events</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>rankinfo(eventid).eq(studentid,$id)</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>score</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>rankinfo(score).eq(studentid,$id).sum()</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>rank</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>rankinfo(score).eq(studentid,$id).sum().rank()</data>
-                    </constraint>
-                </constraints>
-            </field>
-        </entity>
-        <entity name="event">
-            <field>
-                <name>name</name>
-                <type>char(32)</type>
-            </field>
-            <field>
-                <name>gender</name>
-                <type>char(1)</type>
-                <constraints>
-                    <constraint type="in">
-                        <data>男</data>
-                        <data>女</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>student_count</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>rankinfo(studentid).eq(eventid,$id).count()</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>students</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>rankinfo(studentid).eq(eventid,$id).count()</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>schools</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="virtual">
-                        <data>student(schoolid).id(rankinfo(studentid).eq(eventid,$id))</data>
-                    </constraint>
-                </constraints>
-            </field>
-        </entity>
-        <entity name="rankinfo">
-            <field>
-                <name>eventid</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="foreign">
-                        <data>event</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>studentid</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="foreign">
-                        <data>student</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>rank</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="between">
-                        <data>1</data>
-                        <data>5</data>
-                    </constraint>
-                </constraints>
-            </field>
-            <field>
-                <name>score</name>
-                <type>int</type>
-                <constraints>
-                    <constraint type="between">
                         <data>0</data>
-                        <data>100</data>
                     </constraint>
                 </constraints>
             </field>
-        </entity>
+        </fields>
     </metadata>
     <entitydata>
         <schools>
             <school>
-                <name>测试学校</name>
+                <name>测试学校A</name>
+            </school>
+            <school>
+                <name>测试学校B</name>
+            </school>
+            <school>
+                <name>测试学校C</name>
             </school>
         </schools>
         <students>
             <student>
-                <name>测试人员</name>
+                <name>测试人员A</name>
                 <gender>男</gender>
                 <schoolid>1</schoolid>
+            </student>
+            <student>
+                <name>测试人员B</name>
+                <gender>女</gender>
+                <schoolid>1</schoolid>
+            </student>
+            <student>
+                <name>测试人员C</name>
+                <gender>男</gender>
+                <schoolid>2</schoolid>
+            </student>
+            <student>
+                <name>测试人员D</name>
+                <gender>男</gender>
+                <schoolid>2</schoolid>
+            </student>
+            <student>
+                <name>测试人员E</name>
+                <gender>女</gender>
+                <schoolid>3</schoolid>
+            </student>
+                        <student>
+                <name>测试人员F</name>
+                <gender>女</gender>
+                <schoolid>4</schoolid>
             </student>
         </students>
         <events>
             <event>
-                <name>测试运动项目</name>
+                <name>测试运动项目1</name>
                 <gender>男</gender>
+            </event>
+            <event>
+                <name>测试运动项目2</name>
+                <gender>女</gender>
             </event>
         </events>
         <rankinfos>
@@ -217,6 +272,39 @@
                 <rank>1</rank>
                 <score>6</score>
             </rankinfo>
+            <rankinfo>
+                <eventid>1</eventid>
+                <studentid>3</studentid>
+                <rank>2</rank>
+                <score>5</score>
+            </rankinfo>
+            <rankinfo>
+                <eventid>1</eventid>
+                <studentid>4</studentid>
+                <rank>2</rank>
+                <score>4</score>
+            </rankinfo>
+            <rankinfo>
+                <eventid>2</eventid>
+                <studentid>2</studentid>
+                <rank>1</rank>
+                <score>6</score>
+            </rankinfo>
+            <rankinfo>
+                <eventid>2</eventid>
+                <studentid>5</studentid>
+                <rank>2</rank>
+                <score>5</score>
+            </rankinfo>
+            <rankinfo>
+                <eventid>2</eventid>
+                <studentid>6</studentid>
+                <rank>2</rank>
+                <score>4</score>
+            </rankinfo>
         </rankinfos>
     </entitydata>
+    <fielddata>
+        <builtTime>2019/07/27</builtTime>
+    </fielddata>
 </database>

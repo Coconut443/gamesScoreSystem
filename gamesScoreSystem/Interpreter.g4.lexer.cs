@@ -1,6 +1,6 @@
 ﻿namespace gamesScoreSystem
 {
-    partial class TestParser
+    partial class InterpreterLexer
     {
     }
 }

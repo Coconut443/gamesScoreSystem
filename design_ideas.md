@@ -240,6 +240,45 @@
     |.count()|求数组的长度|
     |.rank()|对该字段所有行计算值，并求排名|
 
+11. 使用例
+
+    ```javascript
+        //单表筛选查询
+        //查询所有学生
+        student
+        //查询所有学生的姓名
+        student(name)
+        //查询id=1的学生
+        student.id(1)
+        //查询id<=5的学生
+        student.lte(id,5)
+        //查询id在5到10之间的学生
+        student.gte(id,5).lte(id,10)
+        //查询学生"李明"
+        student.eq(name,"李明")
+        //查询所有名字中带有信的学生
+        student.contain(name,"信")
+        //查询所有名字带有叠字的学生
+        student.regex(name,"(.)\1")
+        //查询所有名字中带有数字的学生
+        student.regex(name,"一|二|三|四|五|六|七|八|九|十|百|千|万|亿|兆")
+
+        //单表排序查询
+        //按照学生id反序输出10名学生
+        student.desc(id).limit(10)
+        //输出id最大的5~10名学生
+        student.desc(id).skip(4).limit(6)
+
+        //多表查询
+        //待写
+        //“xx”学校的所有学生
+        student.eq(schoolid,student.eq(name,"xx"))
+        //学校xx获奖的所有项目
+        rankinfo(eventid).eq(studentid,student.eq(schoolid,student.eq(name,"xx")))
+
+        //待测试项目...
+    ```
+
 （题外话，关于”如何用正则表达式检验一个正则表达式“，可以看[这里](https://stackoverflow.com/questions/172303/is-there-a-regular-expression-to-detect-a-valid-regular-expression)）
 
 ## 输入格式

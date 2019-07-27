@@ -22,10 +22,9 @@ namespace gamesScoreSystem
             {
                 foreach(var constraint in field.Constraints)
                 {
-                    if(!(constraint is VirtualConstraint))
-                    {
-                        constraint.Check(field);
-                    }
+                    if (constraint is VirtualConstraint)
+                        break;
+                    constraint.Check(field);
                 }
             }
         }
@@ -33,12 +32,14 @@ namespace gamesScoreSystem
         {
             foreach (var field in fields)
             {
+                bool isVirtual = false;
                 foreach (var constraint in field.Constraints)
                 {
                     if (constraint is VirtualConstraint)
-                    {
-                        constraint.Check(field);
-                    }
+                        isVirtual = true;
+                    else if (!isVirtual)
+                        break;
+                    constraint.Check(field);
                 }
             }
         }
