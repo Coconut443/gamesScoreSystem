@@ -18,6 +18,8 @@ namespace gamesScoreSystem
 
         bool isCleard = false;
 
+        internal DataBase DataBase { get => dataBase; set => dataBase = value; }
+
         public void Start()
         {
             Welcome();

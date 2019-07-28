@@ -57,12 +57,14 @@ namespace gamesScoreSystem
         public override void EnterStat([NotNull] InterpreterParser.StatContext context)
         {
             rootQuery = new PreQuery(session);
-            QueryStack.Push(rootQuery);
         }
 
         public override void EnterExpr([NotNull] InterpreterParser.ExprContext context)
         {
-            QueryStack.Push(new PreQuery(session));
+            if (QueryStack.Count == 0)
+                QueryStack.Push(rootQuery);
+            else
+                QueryStack.Push(new PreQuery(session));
         }
 
         public override void ExitExpr([NotNull] InterpreterParser.ExprContext context)
@@ -101,16 +103,29 @@ namespace gamesScoreSystem
             FunctionStack.Peek().Params = ParamsStack.Pop();
         }
 
-        //TODO:增加字段级的判断
         public override void EnterParam([NotNull] InterpreterParser.ParamContext context)
         {
-            var type = context.GetText();
-            Console.WriteLine(type);
-            ParamStack.Push(ParamFactory.Create(1));
         }
+
         public override void ExitParam([NotNull] InterpreterParser.ParamContext context)
         {
+            ParamStack.Push(CreateParam(context));
             ParamsStack.Peek().Add(ParamStack.Pop());
+        }
+
+        public Param CreateParam(InterpreterParser.ParamContext ctx)
+        {
+            if (ctx.ID().Length == 1)
+                return new IdParam(ctx.ID()[0].GetText());
+            else if (ctx.ID().Length == 2)
+                return new IdIdParam(ctx.ID()[0].GetText(), ctx.ID()[1].GetText());
+            else if (ctx.NUM() != null)
+                return new NumParam(int.Parse(ctx.NUM().GetText()));
+            else if (ctx.STRING() != null)
+                return new StringParam(ctx.STRING().GetText());
+            else if (ctx.expr() != null)
+                return new QueryParam(QueryStack.Peek());
+            else throw new Exception("不支持的参数");
         }
     }
 }
