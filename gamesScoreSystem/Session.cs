@@ -14,12 +14,15 @@ namespace gamesScoreSystem
         Dictionary<string, string> dataBasePath;
         QueryInterpreter queryInterpreter;
         Stopwatch stopwatch = new Stopwatch();
+        DataBase dataBase;
+
+        bool isCleard = false;
 
         public void Start()
         {
             Welcome();
             LoadSettings();
-            queryInterpreter = new QueryInterpreter();
+            queryInterpreter = new QueryInterpreter(this);
             //TODO:删除下行（用于方便测试）
             Load("../../../gameScore.xml");
             while (true)
@@ -39,7 +42,10 @@ namespace gamesScoreSystem
                 if (queryInterpreter.Interpret(input))
                 {
                     stopwatch.Stop();
-                    Console.WriteLine(String.Format("执行时间{0:0.00}ms", stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+                    if (isCleard)
+                        isCleard = false;
+                    else
+                        Console.WriteLine(String.Format("执行时间{0:0.00}ms", stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
                     break;
                 }
                 Console.Write("      > ");
@@ -57,7 +63,8 @@ namespace gamesScoreSystem
         //TODO:适当优化当前的混沌写法，使之更具有可读性
         //TODO:为XML文档编写验证文件或方法
         //TODO:添加关键词过滤器，不允许与关键词一致
-        public DataBase Load(string path)
+        //TODO:更新queryInterpreter
+        public void Load(string path)
         {
             //检验文件路径的合法性
             XmlReader reader = XmlReader.Create(path);
@@ -273,12 +280,13 @@ namespace gamesScoreSystem
                     field[1] = reader.ReadInnerXml();
                 }
             }
-            return dataBase;
+            this.dataBase = dataBase;
         }
 
         public void Clear()
         {
             Console.Clear();
+            isCleard = true;
         }
 
         public void Exit()
@@ -296,6 +304,80 @@ namespace gamesScoreSystem
                 "System version: " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + "\n" +
                 "\nCopyright (c) 2019, xyqlx. All rights reserved.\n" +
                 "\nType 'help' for help. Type 'clear' to clear the screen.\n");
+        }
+
+        //TODO:补全帮助函数
+        public void Help()
+        {
+            Console.WriteLine("这里是全部的帮助信息");
+        }
+
+        public void Help(string cmd)
+        {
+            Console.WriteLine("这里是"+cmd+"的帮助信息");
+        }
+
+        //TODO:补全Show，Use，Drop函数
+        public void Show(Param param)
+        {
+
+        }
+
+        public void Use(string databaseName)
+        {
+
+        }
+
+        public void Drop(string databaseName)
+        {
+
+        }
+
+        public bool ExecFunction(Function function)
+        {
+            switch (function.functionName)
+            {
+                case "load":
+                    if(function.Params.Count != 1 || !(function.Params[0] is StringParam))
+                        throw new Exception("load函数参数错误，应为load(\"path\")");
+                    Load((function.Params[0] as StringParam).Value);
+                    break;
+                case "clear":
+                    if (function.Params.Count != 0)
+                        throw new Exception("clear函数参数错误，应为clear()");
+                    Clear();
+                    break;
+                case "help":
+                    if (function.Params.Count == 0)
+                        Help();
+                    else if (function.Params.Count == 1 && function.Params[0] is IdParam)
+                        Help((function.Params[0] as IdParam).Value);
+                    else throw new Exception("help函数参数错误，应为help()或help(cmd)");
+                    break;
+                case "exit":
+                    if (function.Params.Count != 0)
+                        throw new Exception("exit函数参数错误，应为exit()");
+                    Exit();
+                    break;
+                case "show":
+                    if (function.Params.Count != 1)
+                        throw new Exception("show函数参数错误，应为show(...)");
+                    Show(function.Params[0]);
+                    break;
+                case "use":
+                    if(function.Params.Count != 1 || !(function.Params[0] is IdParam))
+                        throw new Exception("use函数参数错误，应为use(database)");
+                    Use((function.Params[0] as IdParam).Value);
+                    break;
+                case "drop":
+                    if (function.Params.Count != 1 || !(function.Params[0] is IdParam))
+                        throw new Exception("drop函数参数错误，应为drop(database)");
+                    Drop((function.Params[0] as IdParam).Value);
+                    break;
+                default:
+                    return false;
+            }
+            return true;
         }
     }
 }

@@ -6,7 +6,7 @@ grammar Interpreter;
 
 prog	: (stat? NEWLINE)* EOF;
 stat	: expr;
-expr	: (subject ('.' function)*) | function;
+expr	: (subject ('.' function)*);
 function : ID '(' params ')';
 subject	: ID ('(' params ')')?;
 param	: ID | NUM | STRING | (ID '.' ID) | expr;
