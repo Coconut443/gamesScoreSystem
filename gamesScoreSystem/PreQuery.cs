@@ -6,7 +6,7 @@ namespace gamesScoreSystem
 {
     class PreQuery
     {
-        enum SortOrder
+        public enum SortOrder
         {
             Asc,
             Desc
@@ -38,8 +38,8 @@ namespace gamesScoreSystem
         private StreamType streamType = StreamType.None;
         private Entity entity;
         private SortedSet<int> resultIndex;
-        private SortedSet<int> resultInt;
-        private SortedSet<string> resultString;
+        private List<int> resultInt;
+        private List<string> resultString;
         private int resultNum = 0;
         public PreQuery(Session session)
         {
@@ -170,7 +170,6 @@ namespace gamesScoreSystem
             }
         }
 
-        //TODO:完成执行模块
         public void Exec()
         {
             //第一阶段，进行多轮筛选
@@ -236,7 +235,7 @@ namespace gamesScoreSystem
                             if (isIdField)
                                 resultIndex.RemoveWhere(x => x <= query.resultIndex.Min);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => intField.Data[x] <= query.resultInt.Min);
+                                resultIndex.RemoveWhere(x => intField.Data[x] <= query.resultInt.Min());
                         }
                         break;
                     case QueryFilterType.lt:
@@ -247,7 +246,7 @@ namespace gamesScoreSystem
                             if (isIdField)
                                 resultIndex.RemoveWhere(x => x >= query.resultIndex.Min);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => intField.Data[x] >= query.resultInt.Min);
+                                resultIndex.RemoveWhere(x => intField.Data[x] >= query.resultInt.Min());
                         }
                         break;
                     case QueryFilterType.ne:
@@ -273,7 +272,7 @@ namespace gamesScoreSystem
                             if (isIdField)
                                 resultIndex.RemoveWhere(x => x < query.resultIndex.Min);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => intField.Data[x] < query.resultInt.Min);
+                                resultIndex.RemoveWhere(x => intField.Data[x] < query.resultInt.Min());
                         }
                         break;
                     case QueryFilterType.lte:
@@ -284,7 +283,7 @@ namespace gamesScoreSystem
                             if (isIdField)
                                 resultIndex.RemoveWhere(x => x > query.resultIndex.Min);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => intField.Data[x] > query.resultInt.Min);
+                                resultIndex.RemoveWhere(x => intField.Data[x] > query.resultInt.Min());
                         }
                         break;
                     case QueryFilterType.contain:
@@ -294,23 +293,87 @@ namespace gamesScoreSystem
                 }
             }
             //第二阶段，排序
+            var comparer = new IndexComparer(SortFactors);
+            resultIndex = new SortedSet<int>(resultIndex,comparer);
             //第三阶段，skip和limit
-            //第四阶段，计算
-            //第五阶段，综合
-            if(this.fields.Count == 1)
+            var newSet = new SortedSet<int>(comparer);
+            int cnt = 0;
+            foreach(var index in resultIndex.Skip(skipNum))
             {
-                if(this.fields[0] is IntField)
+                newSet.Add(index);
+                if (++cnt >= limitNum)
+                    break;
+            }
+            resultIndex = newSet;
+            //第四阶段，综合
+            if (this.fields.Count == 1)
+            {
+                if(this.fields[0] == null)
+                {
+                    resultInt = new List<int>(resultIndex);
+                }
+                else if(this.fields[0] is IntField)
                 {
                     var intField = (this.fields[0] as IntField);
-                    resultInt = new SortedSet<int>();
+                    resultInt = new List<int>();
                     foreach (var index in resultIndex)
                         resultInt.Add(intField.Data[index]);
                 }else if(this.fields[0] is CharField)
                 {
                     var charField = (this.fields[0] as CharField);
-                    resultInt = new SortedSet<int>();
+                    resultString = new List<string>();
                     foreach (var index in resultIndex)
                         resultString.Add(charField[index]);
+                }
+            }
+            //第五阶段，计算
+            switch (calcType)
+            {
+                case CalcType.Sum:
+                    resultNum = resultInt.Sum();
+                    break;
+                case CalcType.Count:
+                    resultNum = resultIndex.Count;
+                    break;
+                case CalcType.Rank:
+                    if (resultIndex.Count == 0)
+                        throw new Exception("由于筛选结果为空，无法计算排名");
+                    else if (resultIndex.Count > 1)
+                        throw new Exception("由于筛选结果多于一条，无法计算排名");
+                    else resultNum = resultIndex.Count(x => comparer.Compare(x, resultIndex.First()) < 0);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public void Output()
+        {
+            if(streamType == StreamType.None)
+            {
+                if(calcType != CalcType.None)
+                {
+                    Console.WriteLine(resultNum);
+                }
+                else if(resultInt != null)
+                {
+                    Console.WriteLine(String.Join<int>(",", resultInt));
+                }
+                else if(resultString != null)
+                {
+                    Console.WriteLine(string.Join(",", resultString));
+                }
+                else
+                {
+                    foreach(var index in resultIndex)
+                    {
+                        Console.Write("id:" + index);
+                        foreach(var field in entity.Fields)
+                        {
+                            Console.Write(", ", field.Name + ":" + field[index]);
+                        }
+                        Console.WriteLine();
+                    }
                 }
             }
         }
@@ -384,5 +447,37 @@ namespace gamesScoreSystem
         }
 
         public string[] Value { get => value; set => this.value = value; }
+    }
+
+    class IndexComparer : IComparer<int>
+    {
+        private List<Tuple<PreQuery.SortOrder, Field>> sortFactors;
+        public IndexComparer(List<Tuple<PreQuery.SortOrder, Field>> sortFactors)
+        {
+            this.sortFactors = sortFactors;
+            sortFactors.Reverse();
+        }
+        public int Compare(int lhs, int rhs)
+        {
+            foreach (var factor in sortFactors)
+            {
+                var sortOrder = factor.Item1;
+                var field = factor.Item2;
+                if (field == null)
+                    return sortOrder == PreQuery.SortOrder.Asc ? lhs - rhs : rhs - lhs;
+                else if (field is IntField)
+                {
+                    var intField = field as IntField;
+                    return sortOrder == PreQuery.SortOrder.Asc ?  intField.Data[lhs] - intField.Data[rhs] : intField.Data[rhs] - intField.Data[lhs];
+                }
+                else if (field is CharField)
+                {
+                    var charField = field as CharField;
+                    return sortOrder == PreQuery.SortOrder.Asc ? String.Compare(charField[lhs], charField[rhs]) : String.Compare(charField[rhs], charField[lhs]);
+                }
+                else return 0;
+            }
+            return lhs - rhs;
+        }
     }
 }

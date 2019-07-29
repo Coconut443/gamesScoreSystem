@@ -58,7 +58,6 @@ namespace gamesScoreSystem
 
             //Console.WriteLine(tree.ToStringTree(parser));
             //Console.WriteLine(result);
-
         }
     }
 }

@@ -113,6 +113,12 @@ namespace gamesScoreSystem
             ParamsStack.Peek().Add(ParamStack.Pop());
         }
 
+        public override void ExitStat([NotNull] InterpreterParser.StatContext context)
+        {
+            rootQuery.Exec();
+            rootQuery.Output();
+        }
+
         public Param CreateParam(InterpreterParser.ParamContext ctx)
         {
             if (ctx.ID().Length == 1)

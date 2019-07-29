@@ -65,7 +65,6 @@ namespace gamesScoreSystem
         //TODO:适当优化当前的混沌写法，使之更具有可读性
         //TODO:为XML文档编写验证文件或方法
         //TODO:添加关键词过滤器，不允许与关键词一致
-        //TODO:更新queryInterpreter
         public void Load(string path)
         {
             //检验文件路径的合法性
