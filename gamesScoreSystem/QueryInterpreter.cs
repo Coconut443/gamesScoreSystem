@@ -17,6 +17,7 @@ namespace gamesScoreSystem
         public Stack<Param> ParamStack = new Stack<Param>();
         public Stack<List<Param>> ParamsStack = new Stack<List<Param>>();
         public Stack<Function> FunctionStack = new Stack<Function>();
+        PreQuery lastQuery;
 
         AntlrInputStream stream;
         InterpreterLexer lexer;
@@ -41,6 +42,9 @@ namespace gamesScoreSystem
             //针对xxx规则，开始分析
             var tree = parser.prog();
 
+            //输出解析结果
+            Console.WriteLine(tree.ToStringTree(parser));
+
             //var testListener = new MyTestListener();
             //var vistor = new MyGrammarVistor();
 
@@ -49,7 +53,7 @@ namespace gamesScoreSystem
 
             //var result = vistor.Visit(tree);
 
-            Console.WriteLine(tree.ToStringTree(parser));
+            
             //Console.WriteLine(result);
             return true;
         }
@@ -69,7 +73,7 @@ namespace gamesScoreSystem
 
         public override void ExitExpr([NotNull] InterpreterParser.ExprContext context)
         {
-            QueryStack.Pop();
+            lastQuery = QueryStack.Pop();
         }
 
         public override void EnterSubject([NotNull] InterpreterParser.SubjectContext context)
@@ -86,6 +90,7 @@ namespace gamesScoreSystem
         public override void EnterFunction([NotNull] InterpreterParser.FunctionContext context)
         {
             FunctionStack.Push(new Function());
+            FunctionStack.Peek().functionName = context.ID().GetText();
         }
 
         public override void ExitFunction([NotNull] InterpreterParser.FunctionContext context)
@@ -130,7 +135,7 @@ namespace gamesScoreSystem
             else if (ctx.STRING() != null)
                 return new StringParam(ctx.STRING().GetText());
             else if (ctx.expr() != null)
-                return new QueryParam(QueryStack.Peek());
+                return new QueryParam(lastQuery);
             else throw new Exception("不支持的参数");
         }
     }

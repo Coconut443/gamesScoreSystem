@@ -18,7 +18,7 @@ params	: (param (',' param)*)?;
 
 ID	: LETTER (LETTER | DIGIT)*;
 NUM	: DIGIT+;
-STRING	: '"' (ESC | .)*? '"';
+STRING	: ('"' (ESC | .)*? '"') | ('\'' (ESC | .)*? '\'');
 
 NEWLINE : '\r'? '\n';
 COMMENT : '//' .*? '\r'? '\n' -> skip;

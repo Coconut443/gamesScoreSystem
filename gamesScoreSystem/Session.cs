@@ -12,7 +12,7 @@ namespace gamesScoreSystem
     class Session
     {
         Dictionary<string, string> dataBasePath;
-        QueryInterpreter queryInterpreter;
+        public QueryInterpreter queryInterpreter;
         Stopwatch stopwatch = new Stopwatch();
         DataBase dataBase;
 
@@ -216,6 +216,11 @@ namespace gamesScoreSystem
                                         var virtualConstraint = constraint as VirtualConstraint;
                                         virtualConstraint.RefDataBase = dataBase;
                                     }
+                                    else if (constraint is ForeignConstraint)
+                                    {
+                                        var foreignConstraint = constraint as ForeignConstraint;
+                                        foreignConstraint.RefDataBase = dataBase;
+                                    }
                                     constraints[k++] = constraint;
                                 }
                             }
@@ -282,6 +287,7 @@ namespace gamesScoreSystem
                 }
             }
             this.dataBase = dataBase;
+            dataBase.Check();
         }
 
         public void Clear()

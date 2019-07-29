@@ -81,7 +81,8 @@ namespace gamesScoreSystem
             {
                 if (index > 0 && index <= Length)
                 {
-                    return new string(Data, (index - 1) * charlen, charlen);
+                    string str = new string(Data, (index - 1) * charlen, charlen);
+                    return str.TrimEnd('\0');
                 }
                 else throw new IndexOutOfRangeException("Id\"" + index + "\"超出范围1~" + Length);
             }

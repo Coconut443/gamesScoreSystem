@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace gamesScoreSystem
 {
@@ -41,6 +42,7 @@ namespace gamesScoreSystem
         private List<int> resultInt;
         private List<string> resultString;
         private int resultNum = 0;
+        private bool shouldExec = true;
         public PreQuery(Session session)
         {
             this.session = session;
@@ -48,8 +50,14 @@ namespace gamesScoreSystem
 
         public void Init(Function function)
         {
-            if (function.Params != null && session.ExecFunction(function))
+            //注：以下分支仅仅是为了迎合后续代码格式
+            if (function.Params == null)
+                function.Params = new List<Param>();
+            if (session.ExecFunction(function))
+            {
+                shouldExec = false;
                 return;
+            }
             else
             {
                 subject = function.functionName;
@@ -86,32 +94,32 @@ namespace gamesScoreSystem
                     queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.id, null, function.Params[0]));
                     break;
                 case "eq":
-                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam) || !(function.Params[1] is QueryParam) || !(function.Params[1] is StringParam))
+                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam || function.Params[1] is QueryParam || function.Params[1] is StringParam))
                         throw new Exception("eq函数参数应为(field,<num>/\"string\")");
                     queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.eq, GetField(function.Params[0] as IdParam), function.Params[1]));
                     break;
                 case "gt":
-                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam) || !(function.Params[1] is QueryParam))
+                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam || function.Params[1] is QueryParam))
                         throw new Exception("gt函数参数应为(field,<num>)");
                     queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.gt, GetField(function.Params[0] as IdParam), function.Params[1]));
                     break;
                 case "lt":
-                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam) || !(function.Params[1] is QueryParam))
+                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam || function.Params[1] is QueryParam))
                         throw new Exception("lt函数参数应为(field,<num>)");
                     queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.lt, GetField(function.Params[0] as IdParam), function.Params[1]));
                     break;
                 case "ne":
-                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam) || !(function.Params[1] is QueryParam))
+                    if (function.Params.Count != 2 || !(function.Params[1] is NumParam || function.Params[1] is QueryParam || function.Params[1] is StringParam))
                         throw new Exception("ne函数参数应为(field,<num>)");
                     queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.ne, GetField(function.Params[0] as IdParam), function.Params[1]));
                     break;
                 case "gte":
-                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam) || !(function.Params[1] is QueryParam))
+                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam || function.Params[1] is QueryParam))
                         throw new Exception("gte函数参数应为(field,<num>)");
                     queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.gte, GetField(function.Params[0] as IdParam), function.Params[1]));
                     break;
                 case "lte":
-                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam) || !(function.Params[1] is QueryParam))
+                    if (function.Params.Count != 2 || !(function.Params[0] is IdParam) || !(function.Params[1] is NumParam || function.Params[1] is QueryParam))
                         throw new Exception("lte函数参数应为(field,<num>)");
                     queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.lte, GetField(function.Params[0] as IdParam), function.Params[1]));
                     break;
@@ -172,6 +180,8 @@ namespace gamesScoreSystem
 
         public void Exec()
         {
+            if (!shouldExec)
+                return;
             //第一阶段，进行多轮筛选
             resultIndex = new SortedSet<int>();
             for (int i = 1; i <= entity.Length; ++i)
@@ -195,17 +205,19 @@ namespace gamesScoreSystem
                     throw new Exception("int型的字段必须提供int参数");
                 else if (isString && !isCharField)
                     throw new Exception("char(n)型的字段必须提供字符串参数");
-                else if (isIdField && query.entity != entity)
+                else if (query != null && isIdField && query.entity != entity)
                     throw new Exception("不同实体的id不能进行比较");
                 //无论如何都会执行
-                query.Exec();
+                if(query != null)
+                    query.Exec();
                 switch (queryType)
                 {
                     case QueryFilterType.id:
                         if(isNum)
                         {
+                            var ex = resultIndex.Contains(num);
                             resultIndex.Clear();
-                            if (resultIndex.Contains(num))
+                            if (ex)
                                 resultIndex.Add(num);
                         }else
                         {
@@ -214,7 +226,7 @@ namespace gamesScoreSystem
                         break;
                     case QueryFilterType.eq:
                         if (isNum)
-                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x]) == num));
+                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x - 1]) == num));
                         else if (isString)
                             resultIndex = new SortedSet<int>(resultIndex.Where(x => charField[x] == str));
                         else
@@ -222,36 +234,36 @@ namespace gamesScoreSystem
                             if (isIdField)
                                 resultIndex.IntersectWith(query.resultIndex);
                             else if (isIntField)
-                                resultIndex = new SortedSet<int>(resultIndex.Where(x => query.resultInt.Contains(intField.Data[x])));
+                                resultIndex = new SortedSet<int>(resultIndex.Where(x => query.resultInt.Contains(intField.Data[x - 1])));
                             else
                                 resultIndex = new SortedSet<int>(resultIndex.Where(x => query.resultString.Contains(charField[x])));
                         }
                         break;
                     case QueryFilterType.gt:
                         if (isNum)
-                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x]) > num));
+                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x - 1]) > num));
                         else
                         {
                             if (isIdField)
                                 resultIndex.RemoveWhere(x => x <= query.resultIndex.Min);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => intField.Data[x] <= query.resultInt.Min());
+                                resultIndex.RemoveWhere(x => intField.Data[x - 1] <= query.resultInt.Min());
                         }
                         break;
                     case QueryFilterType.lt:
                         if (isNum)
-                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x]) < num));
+                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x - 1]) < num));
                         else
                         {
                             if (isIdField)
                                 resultIndex.RemoveWhere(x => x >= query.resultIndex.Min);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => intField.Data[x] >= query.resultInt.Min());
+                                resultIndex.RemoveWhere(x => intField.Data[x - 1] >= query.resultInt.Min());
                         }
                         break;
                     case QueryFilterType.ne:
                         if (isNum)
-                            resultIndex.RemoveWhere(x => (isIdField ? x : intField.Data[x]) == num);
+                            resultIndex.RemoveWhere(x => (isIdField ? x : intField.Data[x - 1]) == num);
                         else if (isString)
                             resultIndex.RemoveWhere(x => charField[x] == str);
                         else
@@ -259,36 +271,39 @@ namespace gamesScoreSystem
                             if (isIdField)
                                 resultIndex.ExceptWith(query.resultIndex);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => query.resultInt.Contains(intField.Data[x]));
+                                resultIndex.RemoveWhere(x => query.resultInt.Contains(intField.Data[x - 1]));
                             else
                                 resultIndex.RemoveWhere(x => query.resultString.Contains(charField[x]));
                         }
                         break;
                     case QueryFilterType.gte:
                         if (isNum)
-                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x]) >= num));
+                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x - 1]) >= num));
                         else
                         {
                             if (isIdField)
                                 resultIndex.RemoveWhere(x => x < query.resultIndex.Min);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => intField.Data[x] < query.resultInt.Min());
+                                resultIndex.RemoveWhere(x => intField.Data[x - 1] < query.resultInt.Min());
                         }
                         break;
                     case QueryFilterType.lte:
                         if (isNum)
-                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x]) <= num));
+                            resultIndex = new SortedSet<int>(resultIndex.Where(x => (isIdField ? x : intField.Data[x - 1]) <= num));
                         else
                         {
                             if (isIdField)
                                 resultIndex.RemoveWhere(x => x > query.resultIndex.Min);
                             else if (isIntField)
-                                resultIndex.RemoveWhere(x => intField.Data[x] > query.resultInt.Min());
+                                resultIndex.RemoveWhere(x => intField.Data[x - 1] > query.resultInt.Min());
                         }
                         break;
                     case QueryFilterType.contain:
+                        resultIndex.RemoveWhere(x => !charField[x].Contains(str));
                         break;
                     case QueryFilterType.regex:
+                        var regex = new Regex(str);
+                        resultIndex.RemoveWhere(x => !regex.IsMatch(charField[x]));
                         break;
                 }
             }
@@ -301,7 +316,7 @@ namespace gamesScoreSystem
             foreach(var index in resultIndex.Skip(skipNum))
             {
                 newSet.Add(index);
-                if (++cnt >= limitNum)
+                if (limitNum > 0 && ++cnt >= limitNum)
                     break;
             }
             resultIndex = newSet;
@@ -316,21 +331,44 @@ namespace gamesScoreSystem
                 {
                     var intField = (this.fields[0] as IntField);
                     resultInt = new List<int>();
+                    //if(Array.Exists(intField.Constraints,x=>x is ForeignConstraint))
+                    var removeDuplicate = new HashSet<int>();
                     foreach (var index in resultIndex)
-                        resultInt.Add(intField.Data[index]);
+                    {
+                        var value = intField.Data[index - 1];
+                        if (!removeDuplicate.Contains(value))
+                        {
+                            removeDuplicate.Add(value);
+                            resultInt.Add(value);
+                        }
+                    }
+                    
                 }else if(this.fields[0] is CharField)
                 {
                     var charField = (this.fields[0] as CharField);
                     resultString = new List<string>();
+                    var removeDuplicate = new HashSet<string>();
                     foreach (var index in resultIndex)
-                        resultString.Add(charField[index]);
+                    {
+                        var value = charField[index];
+                        if (!removeDuplicate.Contains(value))
+                        {
+                            removeDuplicate.Add(value);
+                            resultString.Add(value);
+                        }
+                    }
                 }
             }
             //第五阶段，计算
             switch (calcType)
             {
                 case CalcType.Sum:
-                    resultNum = resultInt.Sum();
+                    if(resultInt != null)
+                    {
+                        var intField = this.fields[0] as IntField;
+                        foreach (var index in resultIndex)
+                            resultNum += intField.Data[index - 1];
+                    }
                     break;
                 case CalcType.Count:
                     resultNum = resultIndex.Count;
@@ -349,28 +387,49 @@ namespace gamesScoreSystem
 
         public void Output()
         {
+            if (!shouldExec)
+                return;
             if(streamType == StreamType.None)
             {
                 if(calcType != CalcType.None)
                 {
                     Console.WriteLine(resultNum);
                 }
-                else if(resultInt != null)
+                else if(fields.Count == 1 && fields[0] is IntField && resultInt != null)
                 {
-                    Console.WriteLine(String.Join<int>(",", resultInt));
+                    var constraint = fields[0].Constraints.FirstOrDefault(x => x is ForeignConstraint);
+                    if (constraint != null)
+                    {
+                        var foreignConstraint = constraint as ForeignConstraint;
+                        fields = new List<Field>(foreignConstraint.RefEntity.Fields);
+                        foreach (var index in resultInt)
+                        {
+                            Console.Write("id:" + index);
+                            foreach (var field in fields)
+                            {
+                                if (field != null)
+                                    Console.Write(", " + field.Name + ":" + field[index]);
+                            }
+                            Console.WriteLine();
+                        }
+                    }
+                    else Console.WriteLine(String.Join<int>(",", resultInt));
                 }
-                else if(resultString != null)
+                else if(fields.Count == 1 && fields[0] is CharField && resultString != null)
                 {
                     Console.WriteLine(string.Join(",", resultString));
                 }
                 else
                 {
+                    if (fields.Count == 0 || (fields.Count == 1 && fields[0] == null))
+                        fields.AddRange(entity.Fields);
                     foreach(var index in resultIndex)
                     {
                         Console.Write("id:" + index);
-                        foreach(var field in entity.Fields)
+                        foreach(var field in fields)
                         {
-                            Console.Write(", ", field.Name + ":" + field[index]);
+                            if(field != null)
+                                Console.Write(", " + field.Name + ":" + field[index]);
                         }
                         Console.WriteLine();
                     }
@@ -419,7 +478,7 @@ namespace gamesScoreSystem
 
         public StringParam(string value)
         {
-            this.value = value;
+            this.value = value.Trim('\"','\'');
         }
 
         public string Value { get => value; set => this.value = value; }
@@ -468,7 +527,7 @@ namespace gamesScoreSystem
                 else if (field is IntField)
                 {
                     var intField = field as IntField;
-                    return sortOrder == PreQuery.SortOrder.Asc ?  intField.Data[lhs] - intField.Data[rhs] : intField.Data[rhs] - intField.Data[lhs];
+                    return sortOrder == PreQuery.SortOrder.Asc ?  intField.Data[lhs - 1] - intField.Data[rhs - 1] : intField.Data[rhs - 1] - intField.Data[lhs - 1];
                 }
                 else if (field is CharField)
                 {
