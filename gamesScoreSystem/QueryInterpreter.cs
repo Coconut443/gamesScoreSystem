@@ -19,6 +19,8 @@ namespace gamesScoreSystem
         public Stack<Function> FunctionStack = new Stack<Function>();
         PreQuery lastQuery;
 
+        public bool fade = false;
+
         AntlrInputStream stream;
         InterpreterLexer lexer;
         CommonTokenStream tokens;
@@ -121,7 +123,8 @@ namespace gamesScoreSystem
         public override void ExitStat([NotNull] InterpreterParser.StatContext context)
         {
             rootQuery.Exec();
-            rootQuery.Output();
+            if(!fade)
+                rootQuery.Output();
         }
 
         public Param CreateParam(InterpreterParser.ParamContext ctx)

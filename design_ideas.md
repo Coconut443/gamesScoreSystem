@@ -33,15 +33,9 @@
 |school|student_count|int|学校获取名次的人数|
 |school|score|int|学校总积分|
 |school|rank|int|学校总积分排名|
-|school|students|int array|学校获取名次的运动员id列表|
-|school|events|int array|学校获取名次的项目id列表|
 |student|score|int|运动员总积分|
 |student|rank|int|运动员总积分排名|
-|student|events|int array|运动员获取名次的项目id列表|
 |event|student_count|int|运动项目参加人数|
-|event|students|int array|在运动项目中获取名次的学生id|
-|event|students|int array|在运动项目中的赋分规则|
-|event|schools|int array|在运动项目中获取名次的学校id|
 
 ### 一些说明和完整性约束
 
@@ -49,6 +43,7 @@
 - 本系统不考虑男女都可以参加的项目与团体参加的项目
 - 不赋分的运动员属于冗余记录，不存储与查询
 - 基于系统的功能，并不需要存储成绩
+- 本系统本版本不支持无法存储的非int型虚拟列（即仅支持部分计算型的查询）
 
 ## 数据规模分析
 
@@ -275,7 +270,12 @@
         student.eq(schoolid,student.eq(name,"xx"))
         //学校xx获奖的所有项目
         rankinfo(eventid).eq(studentid,student.eq(schoolid,student.eq(name,"xx")))
-
+        //学生xx获奖的所有项目
+        rankinfo(eventid).eq(studentid,student.eq(name,"xx"))
+        //xx项目的获奖学生
+        rankinfo(studentid).eq(eventid,event.eq(name,"xx"))
+        //xx项目的获奖学校
+        student(schoolid).id(rankinfo(studentid).eq(eventid,event.eq(name,"xx")))
         //待测试项目...
     ```
 

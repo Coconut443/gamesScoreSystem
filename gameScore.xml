@@ -20,15 +20,6 @@
                     </constraints>
                 </field>
                 <field>
-                    <name>events</name>
-                    <type>int</type>
-                    <constraints>
-                        <constraint type="virtual">
-                            <data>rankinfo(eventid).eq(studentid,student.eq(schoolid,$id))</data>
-                        </constraint>
-                    </constraints>
-                </field>
-                <field>
                     <name>student_count</name>
                     <type>int</type>
                     <constraints>
@@ -81,15 +72,6 @@
                     </constraints>
                 </field>
                 <field>
-                    <name>events</name>
-                    <type>int</type>
-                    <constraints>
-                        <constraint type="virtual">
-                            <data>rankinfo(eventid).eq(studentid,$id)</data>
-                        </constraint>
-                    </constraints>
-                </field>
-                <field>
                     <name>score</name>
                     <type>int</type>
                     <constraints>
@@ -129,24 +111,6 @@
                     <constraints>
                         <constraint type="virtual">
                             <data>rankinfo(studentid).eq(eventid,$id).count()</data>
-                        </constraint>
-                    </constraints>
-                </field>
-                <field>
-                    <name>students</name>
-                    <type>int</type>
-                    <constraints>
-                        <constraint type="virtual">
-                            <data>rankinfo(studentid).eq(eventid,$id).count()</data>
-                        </constraint>
-                    </constraints>
-                </field>
-                <field>
-                    <name>schools</name>
-                    <type>int</type>
-                    <constraints>
-                        <constraint type="virtual">
-                            <data>student(schoolid).id(rankinfo(studentid).eq(eventid,$id))</data>
                         </constraint>
                     </constraints>
                 </field>

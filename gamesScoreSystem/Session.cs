@@ -26,7 +26,7 @@ namespace gamesScoreSystem
             LoadSettings();
             queryInterpreter = new QueryInterpreter(this);
             //TODO:删除下行（用于方便测试）
-            Load("../../../gameScore.xml");
+            Load(@"../../../gameScore.xml");
             while (true)
             {
                 Cycle();
@@ -35,7 +35,7 @@ namespace gamesScoreSystem
 
         public void Cycle()
         {
-            Console.Write(DateTime.Now.ToShortTimeString() + " > ");
+            Console.Write("\n" + DateTime.Now.ToShortTimeString() + " > ");
             while (true)
             {
                 string input = Console.ReadLine();
@@ -47,7 +47,7 @@ namespace gamesScoreSystem
                     if (isCleard)
                         isCleard = false;
                     else
-                        Console.WriteLine(String.Format("执行时间{0:0.00}ms", stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+                        Console.WriteLine(String.Format("执行时间 {0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
                     break;
                 }
                 Console.Write("      > ");
@@ -67,6 +67,9 @@ namespace gamesScoreSystem
         //TODO:添加关键词过滤器，不允许与关键词一致
         public void Load(string path)
         {
+            //进行计时
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             //检验文件路径的合法性
             XmlReader reader = XmlReader.Create(path);
             //检查XML中的数据库是否与已有数据库重名
@@ -81,6 +84,10 @@ namespace gamesScoreSystem
                 //TODO:创建数据文件，etc.
                 dataBasePath[dataBaseName] = "";
             }
+            //载入文件报时
+            Console.WriteLine(String.Format("数据文件发现，耗时{0:0}ms，正在进行载入...", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+            stopwatch.Reset();
+            stopwatch.Start();
             //遍历XML文件两次，第一次读取各实体的字段数与数量，第二次读取数据
             Dictionary<string, int> entityFieldNums = new Dictionary<string, int>();
             Dictionary<string, int> entityNums = new Dictionary<string, int>();
@@ -214,7 +221,7 @@ namespace gamesScoreSystem
                                     if(constraint is VirtualConstraint)
                                     {
                                         var virtualConstraint = constraint as VirtualConstraint;
-                                        virtualConstraint.RefDataBase = dataBase;
+                                        virtualConstraint.RefSession = this;
                                     }
                                     else if (constraint is ForeignConstraint)
                                     {
@@ -255,7 +262,7 @@ namespace gamesScoreSystem
                     if (constraint is VirtualConstraint)
                     {
                         var virtualConstraint = constraint as VirtualConstraint;
-                        virtualConstraint.RefDataBase = dataBase;
+                        virtualConstraint.RefSession = this;
                     }
                     constraints[constraintsIndex++] = constraint;
                 }
@@ -287,7 +294,18 @@ namespace gamesScoreSystem
                 }
             }
             this.dataBase = dataBase;
+            //载入文件报时
+            Console.WriteLine(String.Format("数据已载入，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+            stopwatch.Reset();
+            stopwatch.Start();
+            //检查数据完整性
             dataBase.Check();
+            Console.WriteLine(String.Format("数据完整性检查完成，耗时{0:0}ms，开始计算虚拟列...", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+            stopwatch.Reset();
+            stopwatch.Start();
+            //生成虚拟列
+            dataBase.Calc();
+            Console.WriteLine(String.Format("虚拟列计算完成，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
         }
 
         public void Clear()

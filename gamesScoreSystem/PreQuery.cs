@@ -43,6 +43,11 @@ namespace gamesScoreSystem
         private List<string> resultString;
         private int resultNum = 0;
         private bool shouldExec = true;
+
+        public List<int> ResultInt { get => resultInt; set => resultInt = value; }
+        public List<string> ResultString { get => resultString; set => resultString = value; }
+        public int ResultNum { get => resultNum; set => resultNum = value; }
+
         public PreQuery(Session session)
         {
             this.session = session;

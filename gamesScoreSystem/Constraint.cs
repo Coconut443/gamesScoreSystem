@@ -152,13 +152,30 @@ namespace gamesScoreSystem
             }
         }
 
-        private DataBase refDataBase;
-        internal DataBase RefDataBase { get => refDataBase; set => refDataBase = value; }
+        private Session refSession;
+
+        internal Session RefSession { get => refSession; set => refSession = value; }
 
         public override void Check(Field field)
         {
             //TODO:补全虚拟约束模块
+            //由于设计失误，不得已采用这种方式，大概效率会比较有趣（
+            QueryInterpreter queryInterpreter = new QueryInterpreter(refSession);
+            queryInterpreter.fade = true;
 
+            bool isIntField = field is IntField;
+
+            var intField = isIntField ? field as IntField : null;
+            var charField = isIntField ? null : field as CharField;
+
+            for(int i = 1; i <= field.Length; ++i)
+            {
+                queryInterpreter.Interpret(Data[0].Replace("$id", i.ToString()));
+                if (isIntField)
+                    intField.Data[i - 1] = queryInterpreter.rootQuery.ResultNum;
+                else
+                    throw new Exception("不支持char类型的虚拟字段");
+            }
         }
     }
 
