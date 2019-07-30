@@ -13,6 +13,7 @@ namespace gamesScoreSystem
     class Session
     {
         Dictionary<string, string> dataBasePath;
+        Dictionary<string, string> settings;
         public QueryInterpreter queryInterpreter;
         Stopwatch stopwatch = new Stopwatch();
         DataBase dataBase;
@@ -26,8 +27,6 @@ namespace gamesScoreSystem
             Welcome();
             LoadSettings();
             queryInterpreter = new QueryInterpreter(this);
-            //TODO:删除下行（用于方便测试）
-            Load(@"../../../gameScore.xml");
             while (true)
             {
                 Cycle();
@@ -48,7 +47,7 @@ namespace gamesScoreSystem
                     if (isCleard)
                         isCleard = false;
                     else
-                        Console.WriteLine(String.Format("执行时间 {0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+                        Console.WriteLine(String.Format("({0:0}ms)", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
                     break;
                 }
                 Console.Write("      > ");
@@ -59,7 +58,28 @@ namespace gamesScoreSystem
         private void LoadSettings()
         {
             dataBasePath = new Dictionary<string, string>();
-            //TODO:添加加载/创建文件的操作
+            if (File.Exists("settings.ini"))
+            {
+                FileStream fileStream = new FileStream("settings.ini", FileMode.Open);
+                StreamReader streamReader = new StreamReader(fileStream);
+                while (!streamReader.EndOfStream)
+                {
+                    var line = streamReader.ReadLine();
+                    var seg = line.Split('=');
+                    if (seg.Length == 2)
+                        dataBasePath[seg[0]] = seg[1];
+                }
+                fileStream.Close();
+            }
+        }
+
+        private void SaveSettings()
+        {
+            FileStream fileStream = new FileStream("settings.ini", FileMode.Create);
+            StreamWriter streamWriter = new StreamWriter(fileStream);
+            foreach (var key in dataBasePath)
+                streamWriter.WriteLine(key.Key + "=" + key.Value);
+            streamWriter.Close();
         }
 
         //加载XML文档
@@ -313,6 +333,7 @@ namespace gamesScoreSystem
                 dataBase.Save(writer);
                 writer.Close();
             }
+            SaveSettings();
             Console.WriteLine(String.Format("数据文件保存成功，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
         }
 
@@ -350,12 +371,94 @@ namespace gamesScoreSystem
             Console.WriteLine("这里是"+cmd+"的帮助信息");
         }
 
-        //TODO:补全Show，Drop函数
         public void Show(Param param)
         {
+            if (param is IdParam)
+            {
+                var value = (param as IdParam).Value;
+                List<string> results = new List<string>();
+                switch (value)
+                {
+                    case "database":
+                    case "databases":
+                        OutputData("databases", dataBasePath.Keys);
+                        break;
+                    case "entity":
+                    case "entities":
+                        if (dataBase == null)
+                            throw new Exception("你还没有加载任何数据库");
+                        foreach (var entity in dataBase.Entities)
+                            results.Add(entity.Name);
+                        OutputData("entities", results);
+                        break;
+                    default:
+                        try
+                        {
+                            foreach (var field in dataBase.Entities.First(x => x.Name == value).Fields)
+                                results.Add(field.Name);
+                            OutputData(value + "fields", results);
+                        }
+                        catch (Exception)
+                        {
+                            throw new Exception("不存在名为" + value + "的实体");
+                        }
+                        break;
+                }
+            }
+            //目前取消Id.Id这一设定
+            //}else if(param is IdIdParam)
+            //{
+            //    var value = (param as IdIdParam).Value;
+            //    var entity = dataBase.Entities.FirstOrDefault(x => x.Name == value[0]);
+            //    if (entity == null)
+            //        throw new Exception("不存在名为" + value + "的实体");
+            //    var field = entity.Fields.FirstOrDefault(x => x.Name == value[1]);
+            //    if (field == null)
+            //        throw new Exception(entity.Name + "不存在名为" + value[1] + "的字段");
 
+            //}
+            else Help("show");
         }
 
+        public static void OutputData(string name, IEnumerable<string> vs)
+        {
+            int cnt = 0;
+            List<string> list = new List<string>();
+            foreach(var str in vs)
+            {
+                ++cnt;
+                if(cnt > PublicValue.OutputLimit)
+                {
+                    Console.WriteLine("...");
+                    break;
+                }
+                list.Add(str);
+            }
+            if(cnt == 0)
+            {
+                Console.WriteLine("no " + name + ".");
+                return;
+            }
+            //注意处理中文占两个长度的问题
+            var maxLen = list.Max(x => Encoding.GetEncoding("gb2312").GetBytes(x).Length);
+            if (name.Length > maxLen)
+                maxLen = name.Length;
+            var divideLine = "+-" + new string('-', maxLen) + "-+";
+            Console.WriteLine(divideLine);
+            Console.WriteLine("| " + name + new string(' ', maxLen - Encoding.GetEncoding("gb2312").GetBytes(name).Length) + " |");
+            Console.WriteLine(divideLine);
+            foreach(var str in list)
+                Console.WriteLine("| " + str + new string(' ', maxLen - Encoding.GetEncoding("gb2312").GetBytes(str).Length) + " |");
+            Console.WriteLine(divideLine);
+            if(cnt > PublicValue.OutputLimit)
+            {
+                Console.Write(">");
+                --cnt;
+            }
+
+            Console.Write(cnt + " rows ");
+        }
+        
         public void Use(string databaseName)
         {
             if (!dataBasePath.ContainsKey(databaseName))
@@ -364,11 +467,18 @@ namespace gamesScoreSystem
             BinaryReader reader = new BinaryReader(new FileStream(dataBasePath[databaseName], FileMode.Open));
             dataBase.Load(reader);
             reader.Close();
+            SaveSettings();
+            Console.WriteLine("数据库" + databaseName + "加载完成");
         }
 
         public void Drop(string databaseName)
         {
-
+            if(!dataBasePath.ContainsKey(databaseName))
+                throw new Exception("不存在名为" + databaseName + "的数据库");
+            dataBasePath.Remove(databaseName);
+            if (File.Exists(databaseName + ".data"))
+                File.Delete(databaseName + ".data");
+            Console.WriteLine("数据库"+databaseName+"已被删除");
         }
 
         public bool ExecFunction(Function function)

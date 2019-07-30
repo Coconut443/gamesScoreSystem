@@ -29,7 +29,7 @@
                     </constraints>
                 </field>
                 <field>
-                    <name>rank</name>
+                    <name>scorerank</name>
                     <type>int</type>
                     <constraints>
                         <constraint type="virtual">
@@ -72,7 +72,7 @@
                     </constraints>
                 </field>
                 <field>
-                    <name>rank</name>
+                    <name>scorerank</name>
                     <type>int</type>
                     <constraints>
                         <constraint type="virtual">
@@ -126,7 +126,7 @@
                     </constraints>
                 </field>
                 <field>
-                    <name>rank</name>
+                    <name>scorerank</name>
                     <type>int</type>
                     <constraints>
                         <constraint type="between">
@@ -224,37 +224,37 @@
             <rankinfo>
                 <eventid>1</eventid>
                 <studentid>1</studentid>
-                <rank>1</rank>
+                <scorerank>1</scorerank>
                 <score>6</score>
             </rankinfo>
             <rankinfo>
                 <eventid>1</eventid>
                 <studentid>3</studentid>
-                <rank>2</rank>
+                <scorerank>2</scorerank>
                 <score>5</score>
             </rankinfo>
             <rankinfo>
                 <eventid>1</eventid>
                 <studentid>4</studentid>
-                <rank>2</rank>
+                <scorerank>2</scorerank>
                 <score>4</score>
             </rankinfo>
             <rankinfo>
                 <eventid>2</eventid>
                 <studentid>2</studentid>
-                <rank>1</rank>
+                <scorerank>1</scorerank>
                 <score>6</score>
             </rankinfo>
             <rankinfo>
                 <eventid>2</eventid>
                 <studentid>5</studentid>
-                <rank>2</rank>
+                <scorerank>2</scorerank>
                 <score>5</score>
             </rankinfo>
             <rankinfo>
                 <eventid>2</eventid>
                 <studentid>6</studentid>
-                <rank>2</rank>
+                <scorerank>2</scorerank>
                 <score>4</score>
             </rankinfo>
         </rankinfos>

@@ -520,11 +520,11 @@ namespace gamesScoreSystem
                             Console.WriteLine();
                         }
                     }
-                    else Console.WriteLine(String.Join<int>(",", resultInt));
+                    else Session.OutputData("results", resultInt.Cast<string>());
                 }
                 else if(fields.Count == 1 && fields[0] is CharField && resultString != null)
                 {
-                    Console.WriteLine(string.Join(",", resultString));
+                    Session.OutputData("results", resultString);
                 }
                 else
                 {

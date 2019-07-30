@@ -158,7 +158,6 @@ namespace gamesScoreSystem
 
         public override void Check(Field field)
         {
-            //TODO:补全虚拟约束模块
             //由于设计失误，不得已采用这种方式，大概效率会比较有趣（
             QueryInterpreter queryInterpreter = new QueryInterpreter(refSession);
             queryInterpreter.fade = true;
