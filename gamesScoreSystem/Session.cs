@@ -396,7 +396,7 @@ namespace gamesScoreSystem
                         {
                             foreach (var field in dataBase.Entities.First(x => x.Name == value).Fields)
                                 results.Add(field.Name);
-                            OutputData(value + "fields", results);
+                            OutputData(value + ".fields", results);
                         }
                         catch (Exception)
                         {

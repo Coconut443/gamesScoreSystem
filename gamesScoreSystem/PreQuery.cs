@@ -402,7 +402,6 @@ namespace gamesScoreSystem
                         resultNum = tempIndex.Count(x => comparer.Compare(x, resultIndex.First()) > 0) + 1;
                     }
                     break;
-                //以下两条暂时并不能工作
                 case CalcType.CountRank:
 
                     var currentNum = resultIndex.Count;
@@ -498,6 +497,7 @@ namespace gamesScoreSystem
                 return;
             if(streamType == StreamType.None)
             {
+                //TODO:输出多字段和单数值
                 if(calcType != CalcType.None)
                 {
                     Console.WriteLine(resultNum);
@@ -541,6 +541,9 @@ namespace gamesScoreSystem
                         Console.WriteLine();
                     }
                 }
+            }else if(streamType == StreamType.Csv)
+            {
+                //TODO:csv格式输出
             }
         }
     }
@@ -625,25 +628,26 @@ namespace gamesScoreSystem
         }
         public int Compare(int lhs, int rhs)
         {
+            int result = 0;
             foreach (var factor in sortFactors)
             {
                 var sortOrder = factor.Item1;
                 var field = factor.Item2;
                 if (field == null)
-                    return sortOrder == PreQuery.SortOrder.Asc ? lhs - rhs : rhs - lhs;
+                    result = sortOrder == PreQuery.SortOrder.Asc ? lhs - rhs : rhs - lhs;
                 else if (field is IntField)
                 {
                     var intField = field as IntField;
-                    var temp = sortOrder == PreQuery.SortOrder.Asc ?  intField.Data[lhs - 1] - intField.Data[rhs - 1] : intField.Data[rhs - 1] - intField.Data[lhs - 1];
-                    return temp; 
+                    result = sortOrder == PreQuery.SortOrder.Asc ?  intField.Data[lhs - 1] - intField.Data[rhs - 1] : intField.Data[rhs - 1] - intField.Data[lhs - 1];
                 }
                 else if (field is CharField)
                 {
                     var charField = field as CharField;
-                    var temp = sortOrder == PreQuery.SortOrder.Asc ? String.Compare(charField[lhs], charField[rhs]) : String.Compare(charField[rhs], charField[lhs]);
-                    return temp;
+                    result = sortOrder == PreQuery.SortOrder.Asc ? String.Compare(charField[lhs], charField[rhs]) : String.Compare(charField[rhs], charField[lhs]);
                 }
-                else return 0;
+                else result = 0;
+                if (result != 0)
+                    return result;
             }
             return lhs - rhs;
         }
