@@ -16,7 +16,7 @@ params	: (param (',' param)*)?;
  * Lexer Rules
  */
 
-ID	: LETTER (LETTER | DIGIT)*;
+ID	: LETTER (LETTER | DIGIT | '_')*;
 NUM	: DIGIT+;
 STRING	: ('"' (ESC | .)*? '"') | ('\'' (ESC | .)*? '\'');
 

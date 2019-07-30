@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace gamesScoreSystem
@@ -42,6 +43,57 @@ namespace gamesScoreSystem
                     else if (!isVirtual)
                         break;
                     constraint.Check(field);
+                }
+            }
+        }
+
+        public void Save(BinaryWriter writer)
+        {
+            writer.Write(name);
+            writer.Write(entities.Length);
+            foreach (var entity in entities)
+                entity.Save(writer);
+            writer.Write(fields.Length);
+            foreach (var field in fields)
+            {
+                writer.Write(field is IntField ? true : false);
+                field.Save(writer);
+            }
+                
+        }
+
+        public void Load(BinaryReader reader)
+        {
+            name = reader.ReadString();
+            entities = new Entity[reader.ReadInt32()];
+            for (int i = 0; i < entities.Length; ++i)
+            {
+                entities[i] = new Entity("", 0);
+                entities[i].Load(reader);
+            }
+                
+            fields = new Field[reader.ReadInt32()];
+            for(int i = 0; i < fields.Length; ++i)
+            {
+                bool isIntField = reader.ReadBoolean();
+                if (isIntField)
+                    fields[i] = new IntField("", 1, new Constraint[0]);
+                else
+                    fields[i] = new CharField("", 1, 1, new Constraint[0]);
+                fields[i].Load(reader);
+            }
+            foreach(var entity in entities)
+            {
+                foreach(var field in entity.Fields)
+                {
+                    if (field.RefEntityName != "")
+                    {
+                        field.Constraints = new Constraint[1];
+                        field.Constraints[0] = new ForeignConstraint(new string[1] { field.RefEntityName });
+                        var foreignConstraint = field.Constraints[0] as ForeignConstraint;
+                        foreignConstraint.RefDataBase = this;
+                        foreignConstraint.RefEntity = entities.First(x => x.Name == field.RefEntityName);
+                    }
                 }
             }
         }

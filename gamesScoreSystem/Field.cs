@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Text.RegularExpressions;
 
 namespace gamesScoreSystem
@@ -19,10 +20,15 @@ namespace gamesScoreSystem
             }
             else throw new ArgumentOutOfRangeException("length", "数量" + length + "超出范围1~" + PublicValue.MaxLen + "，或许你可以在设置中改变最大值");
         }
+        abstract public void Save(BinaryWriter writer);
+        abstract public void Load(BinaryReader reader);
         abstract public string this[int index] { get;set; }
         public int Length { get => length; }
         public string Name { get => name; set => name = value; }
         internal Constraint[] Constraints { get => constraints; set => constraints = value; }
+        public string RefEntityName { get => refEntityName; set => refEntityName = value; }
+
+        private string refEntityName = "";
     }
 
     class IntField : Field
@@ -60,6 +66,29 @@ namespace gamesScoreSystem
         }
 
         public int[] Data { get => data; }
+
+        public override void Load(BinaryReader reader)
+        {
+            Name = reader.ReadString();
+            for (int i = 0; i < data.Length; ++i)
+                data[i] = reader.ReadInt32();
+            if (reader.ReadBoolean())
+                this.RefEntityName = reader.ReadString();
+        }
+
+        public override void Save(BinaryWriter writer)
+        {
+            writer.Write(Name);
+            foreach (var d in data)
+                writer.Write(d);
+            var foreignConstraint = Array.Find(this.Constraints, x => x is ForeignConstraint);
+            if (foreignConstraint != null)
+            {
+                writer.Write(true);
+                writer.Write((foreignConstraint as ForeignConstraint).RefEntity.Name);
+            }
+            else writer.Write(false);
+        }
     }
 
     class CharField : Field
@@ -109,6 +138,20 @@ namespace gamesScoreSystem
 
         public char[] Data { get => data; }
         public int Charlen { get => charlen; }
+
+        public override void Load(BinaryReader reader)
+        {
+            Name = reader.ReadString();
+            charlen = reader.ReadInt32();
+            data = reader.ReadChars(data.Length * charlen);
+        }
+
+        public override void Save(BinaryWriter writer)
+        {
+            writer.Write(Name);
+            writer.Write(charlen);
+            writer.Write(data);
+        }
     }
 
     class FieldFactory

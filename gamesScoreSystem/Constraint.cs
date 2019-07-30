@@ -127,7 +127,7 @@ namespace gamesScoreSystem
         }
 
         internal DataBase RefDataBase { get => refDataBase; set => refDataBase = value; }
-        internal Entity RefEntity { get => refEntity;}
+        internal Entity RefEntity { get => refEntity; set => refEntity = value; }
 
         public override void Check(Field field)
         {

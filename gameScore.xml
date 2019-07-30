@@ -11,15 +11,6 @@
                     <type>char(32)</type>
                 </field>
                 <field>
-                    <name>students</name>
-                    <type>int</type>
-                    <constraints>
-                        <constraint type="virtual">
-                            <data>student.eq(schoolid,$id)</data>
-                        </constraint>
-                    </constraints>
-                </field>
-                <field>
                     <name>student_count</name>
                     <type>int</type>
                     <constraints>
@@ -42,7 +33,7 @@
                     <type>int</type>
                     <constraints>
                         <constraint type="virtual">
-                            <data>rankinfo(score).eq(studentid,student.eq(schoolid,$id)).sum().rank()</data>
+                            <data>school.id($id).asc(score).rank()</data>
                         </constraint>
                     </constraints>
                 </field>
@@ -85,7 +76,7 @@
                     <type>int</type>
                     <constraints>
                         <constraint type="virtual">
-                            <data>rankinfo(score).eq(studentid,$id).sum().rank()</data>
+                            <data>student.id($id).asc(score).rank()</data>
                         </constraint>
                     </constraints>
                 </field>

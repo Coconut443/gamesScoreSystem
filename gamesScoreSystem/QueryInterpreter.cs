@@ -45,7 +45,7 @@ namespace gamesScoreSystem
             var tree = parser.prog();
 
             //输出解析结果
-            Console.WriteLine(tree.ToStringTree(parser));
+            //Console.WriteLine(tree.ToStringTree(parser));
 
             //var testListener = new MyTestListener();
             //var vistor = new MyGrammarVistor();

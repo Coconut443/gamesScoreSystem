@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -41,6 +42,35 @@ namespace gamesScoreSystem
                         break;
                     constraint.Check(field);
                 }
+            }
+        }
+
+        public void Save(BinaryWriter writer)
+        {
+            writer.Write(name);
+            writer.Write(length);
+            writer.Write(fields.Length);
+            foreach (var field in fields)
+            {
+                writer.Write(field is IntField ? true : false);
+                field.Save(writer);
+            }
+                
+        }
+        public void Load(BinaryReader reader)
+        {
+            name = reader.ReadString();
+            length = reader.ReadInt32();
+            var fieldsLength = reader.ReadInt32();
+            fields = new Field[fieldsLength];
+            for(int i = 0; i < fieldsLength; ++i)
+            {
+                bool isIntField = reader.ReadBoolean();
+                if (isIntField)
+                    fields[i] = new IntField("", length, new Constraint[0]);
+                else
+                    fields[i] = new CharField("", length, 1, new Constraint[0]);
+                fields[i].Load(reader);
             }
         }
 

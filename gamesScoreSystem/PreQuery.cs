@@ -17,7 +17,9 @@ namespace gamesScoreSystem
             None,
             Sum,
             Count,
-            Rank
+            Rank,
+            CountRank,
+            SumRank
         }
         enum StreamType
         {
@@ -176,7 +178,11 @@ namespace gamesScoreSystem
                 case "rank":
                     if (function.Params.Count != 0)
                         throw new Exception("rank函数无参数");
-                    calcType = CalcType.Rank;
+                    if (calcType == CalcType.Count)
+                        calcType = CalcType.CountRank;
+                    else if (calcType == CalcType.Sum)
+                        calcType = CalcType.SumRank;
+                    else calcType = CalcType.Rank;
                     break;
                 default:
                     throw new Exception("不支持的函数");
@@ -210,10 +216,11 @@ namespace gamesScoreSystem
                     throw new Exception("int型的字段必须提供int参数");
                 else if (isString && !isCharField)
                     throw new Exception("char(n)型的字段必须提供字符串参数");
-                else if (query != null && isIdField && query.entity != entity)
+                else if (query != null && isIdField && (query.entity != entity && !(query.fields.Count == 1 && Array.Exists(query.fields[0].Constraints, x => (x is ForeignConstraint) && ((x as ForeignConstraint).RefEntity == entity)))))
                     throw new Exception("不同实体的id不能进行比较");
+                
                 //无论如何都会执行
-                if(query != null)
+                if (query != null)
                     query.Exec();
                 switch (queryType)
                 {
@@ -226,7 +233,11 @@ namespace gamesScoreSystem
                                 resultIndex.Add(num);
                         }else
                         {
-                            resultIndex.RemoveWhere(x => !query.resultIndex.Contains(x));
+                            if(query.fields.Count != 1)
+                                resultIndex.RemoveWhere(x => !query.resultIndex.Contains(x));
+                            else
+                                resultIndex.RemoveWhere(x => !query.resultInt.Contains(x));
+
                         }
                         break;
                     case QueryFilterType.eq:
@@ -383,7 +394,98 @@ namespace gamesScoreSystem
                         throw new Exception("由于筛选结果为空，无法计算排名");
                     else if (resultIndex.Count > 1)
                         throw new Exception("由于筛选结果多于一条，无法计算排名");
-                    else resultNum = resultIndex.Count(x => comparer.Compare(x, resultIndex.First()) < 0);
+                    else
+                    {
+                        var tempIndex = new List<int>();
+                        for (int i = 1; i <= entity.Length; ++i)
+                            tempIndex.Add(i);
+                        resultNum = tempIndex.Count(x => comparer.Compare(x, resultIndex.First()) > 0) + 1;
+                    }
+                    break;
+                //以下两条暂时并不能工作
+                case CalcType.CountRank:
+
+                    var currentNum = resultIndex.Count;
+
+                    calcType = CalcType.Count;
+
+                    var rankcnt = 1;
+
+                    var filterIndex = -1;
+                    ForeignConstraint foreignConstraint = null;
+
+                    for (int j = 0; j < queryFilters.Count; ++j)
+                    {
+                        var filter = queryFilters[j];
+                        foreignConstraint = Array.Find(filter.Item2.Constraints, x => x is ForeignConstraint) as ForeignConstraint;
+                        if (foreignConstraint != null)
+                        {
+                            filterIndex = j;
+                            break;
+                        }  
+                    }
+                    if (filterIndex == -1 || foreignConstraint == null)
+                    {
+                        resultNum = 1;
+                        return;
+                    }
+                    for (int i = 1; i <= foreignConstraint.RefEntity.Length; ++i)
+                    {
+                        queryFilters[filterIndex] = new Tuple<QueryFilterType, Field, Param>(queryFilters[filterIndex].Item1, queryFilters[filterIndex].Item2, new NumParam(i));
+                        resultNum = 0;
+                        queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.id, null, new NumParam(i)));
+                        this.Exec();
+                        if (resultNum > currentNum)
+                            ++rankcnt;
+                    }
+
+                    calcType = CalcType.CountRank;
+
+                    resultNum = rankcnt;
+                    break;
+                case CalcType.SumRank:
+                    if (resultInt != null)
+                    {
+                        var intField = this.fields[0] as IntField;
+                        foreach (var index in resultIndex)
+                            resultNum += intField.Data[index - 1];
+                    }
+                    currentNum = resultNum;
+
+                    calcType = CalcType.Sum;
+
+                    rankcnt = 1;
+                    filterIndex = -1;
+                    foreignConstraint = null;
+
+                    for (int j = 0; j < queryFilters.Count; ++j)
+                    {
+                        var filter = queryFilters[j];
+                        foreignConstraint = Array.Find(filter.Item2.Constraints, x => x is ForeignConstraint) as ForeignConstraint;
+                        if (foreignConstraint != null)
+                        {
+                            filterIndex = j;
+                            break;
+                        }
+                    }
+                    if (filterIndex == -1 || foreignConstraint == null)
+                    {
+                        resultNum = 1;
+                        return;
+                    }
+                    for (int i = 1; i <= foreignConstraint.RefEntity.Length; ++i)
+                    {
+                        queryFilters[filterIndex] = new Tuple<QueryFilterType, Field, Param>(queryFilters[filterIndex].Item1, queryFilters[filterIndex].Item2, new NumParam(i));
+                        resultNum = 0;
+                        queryFilters.Add(new Tuple<QueryFilterType, Field, Param>(QueryFilterType.id, null, new NumParam(i)));
+                        this.Exec();
+                        if (resultNum > currentNum)
+                            ++rankcnt;
+                    }
+
+                    calcType = CalcType.SumRank;
+
+                    resultNum = rankcnt;
                     break;
                 default:
                     break;
@@ -532,12 +634,14 @@ namespace gamesScoreSystem
                 else if (field is IntField)
                 {
                     var intField = field as IntField;
-                    return sortOrder == PreQuery.SortOrder.Asc ?  intField.Data[lhs - 1] - intField.Data[rhs - 1] : intField.Data[rhs - 1] - intField.Data[lhs - 1];
+                    var temp = sortOrder == PreQuery.SortOrder.Asc ?  intField.Data[lhs - 1] - intField.Data[rhs - 1] : intField.Data[rhs - 1] - intField.Data[lhs - 1];
+                    return temp; 
                 }
                 else if (field is CharField)
                 {
                     var charField = field as CharField;
-                    return sortOrder == PreQuery.SortOrder.Asc ? String.Compare(charField[lhs], charField[rhs]) : String.Compare(charField[rhs], charField[lhs]);
+                    var temp = sortOrder == PreQuery.SortOrder.Asc ? String.Compare(charField[lhs], charField[rhs]) : String.Compare(charField[rhs], charField[lhs]);
+                    return temp;
                 }
                 else return 0;
             }

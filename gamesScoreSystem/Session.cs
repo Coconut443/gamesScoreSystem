@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.IO;
 using System.Xml.Linq;
 
 namespace gamesScoreSystem
@@ -76,14 +77,7 @@ namespace gamesScoreSystem
             reader.ReadToFollowing("database");
             string dataBaseName = reader.GetAttribute("name");
             if (dataBasePath.ContainsKey(dataBaseName))
-            {
                 throw new Exception("已有与导入的数据库" + dataBaseName + "重名的数据库");
-            }
-            else
-            {
-                //TODO:创建数据文件，etc.
-                dataBasePath[dataBaseName] = "";
-            }
             //载入文件报时
             Console.WriteLine(String.Format("数据文件发现，耗时{0:0}ms，正在进行载入...", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
             stopwatch.Reset();
@@ -174,6 +168,7 @@ namespace gamesScoreSystem
                 }
             }
             DataBase dataBase = new DataBase();
+            dataBase.Name = dataBaseName;
             //读取实体与字段
             reader.ReadToFollowing("entities");
             int entityCnt = entityNums.Count;
@@ -294,6 +289,8 @@ namespace gamesScoreSystem
                 }
             }
             this.dataBase = dataBase;
+            //关闭文件流
+            reader.Close();
             //载入文件报时
             Console.WriteLine(String.Format("数据已载入，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
             stopwatch.Reset();
@@ -305,7 +302,18 @@ namespace gamesScoreSystem
             stopwatch.Start();
             //生成虚拟列
             dataBase.Calc();
-            Console.WriteLine(String.Format("虚拟列计算完成，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+            Console.WriteLine(String.Format("虚拟列计算完成，耗时{0:0}ms，开始转化为数据文件...", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
+            stopwatch.Reset();
+            stopwatch.Start();
+            //转为数据文件
+            if (!dataBasePath.ContainsKey(dataBaseName))
+            {
+                dataBasePath[dataBaseName] = dataBaseName + ".data";
+                BinaryWriter writer = new BinaryWriter(new FileStream(dataBaseName + ".data",FileMode.Create));
+                dataBase.Save(writer);
+                writer.Close();
+            }
+            Console.WriteLine(String.Format("数据文件保存成功，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
         }
 
         public void Clear()
@@ -342,7 +350,7 @@ namespace gamesScoreSystem
             Console.WriteLine("这里是"+cmd+"的帮助信息");
         }
 
-        //TODO:补全Show，Use，Drop函数
+        //TODO:补全Show，Drop函数
         public void Show(Param param)
         {
 
@@ -350,7 +358,12 @@ namespace gamesScoreSystem
 
         public void Use(string databaseName)
         {
-
+            if (!dataBasePath.ContainsKey(databaseName))
+                throw new Exception("不存在名为"+databaseName+"的数据库");
+            dataBase = new DataBase();
+            BinaryReader reader = new BinaryReader(new FileStream(dataBasePath[databaseName], FileMode.Open));
+            dataBase.Load(reader);
+            reader.Close();
         }
 
         public void Drop(string databaseName)
