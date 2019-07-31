@@ -1,20 +1,45 @@
-﻿using System;
+﻿//约束类与约束工厂类
+using System;
 using System.Collections.Generic;
 
 namespace gamesScoreSystem
 {
+    /// <summary>
+    /// 约束基类
+    /// </summary>
     abstract class Constraint
     {
+        /// <summary>
+        /// 约束需要的数据
+        /// </summary>
         private string[] data;
+
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="data">约束需要的数据</param>
         public Constraint(string[] data)
         {
             this.data = new string[data.Length];
             data.CopyTo(this.data, 0);
         }
+
+        /// <summary>
+        /// 约束需要的数据
+        /// </summary>
         public string[] Data { get => data; }
+
+        /// <summary>
+        /// 根据指定的Field检查是否遵守约束
+        /// 实际上field应当作为约束的一个属性
+        /// </summary>
+        /// <param name="field"></param>
         public abstract void Check(Field field);
     }
 
+    /// <summary>
+    /// In约束：限制字段值在几个值之内
+    /// </summary>
     class InConstraint : Constraint
     {
         public InConstraint(string[] data) : base(data)
@@ -23,8 +48,7 @@ namespace gamesScoreSystem
 
         public override void Check(Field field)
         {
-            //选择采用hash表来减少判断时间
-
+            //检验方法：判断字段中是否存在不属于data数组提供选择的数据
             if (field is IntField)
             {
                 HashSet<int> vs = new HashSet<int>();
@@ -66,6 +90,9 @@ namespace gamesScoreSystem
         }
     }
 
+    /// <summary>
+    /// Between约束：限制数值在一定范围内
+    /// </summary>
     class BetweenConstraint : Constraint
     {
         public BetweenConstraint(string[] data) : base(data)
@@ -78,6 +105,7 @@ namespace gamesScoreSystem
 
         public override void Check(Field field)
         {
+            //检验方法：检查是否有在范围之外的字段值
             if (field is IntField)
             {
                 int l, r;
@@ -113,6 +141,9 @@ namespace gamesScoreSystem
         }
     }
 
+    /// <summary>
+    /// Foreign约束：限制字段参考某一实体（的Id号）
+    /// </summary>
     class ForeignConstraint : Constraint
     {
         private DataBase refDataBase;
@@ -126,14 +157,16 @@ namespace gamesScoreSystem
             }
         }
 
+        //参考的数据库与实体
         internal DataBase RefDataBase { get => refDataBase; set => refDataBase = value; }
         internal Entity RefEntity { get => refEntity; set => refEntity = value; }
 
         public override void Check(Field field)
         {
+            //检验方法：判断字段值是否在某一范围之内
             refEntity = Array.Find(refDataBase.Entities, x => x.Name == Data[0]);
             if (refEntity == null)
-                throw new Exception("字段" +field.Name+"的外键约束指向的实体" + Data[0] + "不存在");
+                throw new Exception("字段" + field.Name + "的外键约束指向的实体" + Data[0] + "不存在");
             if (!(field is IntField))
                 throw new Exception("带有外键约束的字段" + field.Name + "类型应为int");
             var intField = field as IntField;
@@ -142,6 +175,9 @@ namespace gamesScoreSystem
         }
     }
 
+    /// <summary>
+    /// Virtual约束：指定此字段是虚拟字段，即需要计算生成的字段
+    /// </summary>
     class VirtualConstraint : Constraint
     {
         public VirtualConstraint(string[] data) : base(data)
@@ -158,7 +194,7 @@ namespace gamesScoreSystem
 
         public override void Check(Field field)
         {
-            //由于设计失误，不得已采用这种方式，大概效率会比较有趣（
+            //检验方法：遍历所有id进行强制计算，该方法的效率有时较低
             QueryInterpreter queryInterpreter = new QueryInterpreter(refSession);
             queryInterpreter.fade = true;
 
@@ -167,7 +203,7 @@ namespace gamesScoreSystem
             var intField = isIntField ? field as IntField : null;
             var charField = isIntField ? null : field as CharField;
 
-            for(int i = 1; i <= field.Length; ++i)
+            for (int i = 1; i <= field.Length; ++i)
             {
                 queryInterpreter.Interpret(Data[0].Replace("$id", i.ToString()));
                 if (isIntField)
@@ -178,8 +214,17 @@ namespace gamesScoreSystem
         }
     }
 
+    /// <summary>
+    /// 约束工厂类
+    /// </summary>
     class ConstraintFactory
     {
+        /// <summary>
+        /// 创建一个约束
+        /// </summary>
+        /// <param name="type">表示约束类型的字符串</param>
+        /// <param name="data">数据</param>
+        /// <returns>创建的约束</returns>
         public static Constraint Create(string type, string[] data)
         {
             switch (type.ToLower())

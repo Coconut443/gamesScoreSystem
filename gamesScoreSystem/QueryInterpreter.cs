@@ -1,36 +1,91 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//查询解释器类
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
+using System;
+using System.Collections.Generic;
 
 namespace gamesScoreSystem
 {
+    /// <summary>
+    /// 查询解释器/监听器类
+    /// </summary>
     class QueryInterpreter : InterpreterBaseListener
     {
+        /// <summary>
+        /// 解释器属于的会话
+        /// </summary>
         public Session session;
+
+        /// <summary>
+        /// 解释器的根查询
+        /// </summary>
         public PreQuery rootQuery;
+
+        /// <summary>
+        /// 解释器的查询栈
+        /// </summary>
         public Stack<PreQuery> QueryStack = new Stack<PreQuery>();
+
+        /// <summary>
+        /// 解释器的参数栈
+        /// </summary>
         public Stack<Param> ParamStack = new Stack<Param>();
+
+        /// <summary>
+        /// 解释器的参数列表栈
+        /// </summary>
         public Stack<List<Param>> ParamsStack = new Stack<List<Param>>();
+
+        /// <summary>
+        /// 解释器的函数栈
+        /// </summary>
         public Stack<Function> FunctionStack = new Stack<Function>();
+
+        /// <summary>
+        /// 记录上一个经过的查询（主要是为了录入参数的方便）
+        /// </summary>
         PreQuery lastQuery;
 
+        /// <summary>
+        /// 解释器是否应当对会话进行输出
+        /// </summary>
         public bool fade = false;
 
+        /// <summary>
+        /// 语法分析输入流
+        /// </summary>
         AntlrInputStream stream;
+
+        /// <summary>
+        /// 词法分析器
+        /// </summary>
         InterpreterLexer lexer;
+
+        /// <summary>
+        /// 词法符号缓冲区
+        /// </summary>
         CommonTokenStream tokens;
+
+        /// <summary>
+        /// 语法分析器
+        /// </summary>
         InterpreterParser parser;
 
+        /// <summary>
+        /// 查询解释器的构造函数
+        /// </summary>
+        /// <param name="session">属于的会话</param>
         public QueryInterpreter(Session session)
         {
             this.session = session;
         }
 
+        /// <summary>
+        /// 解释一个查询程序
+        /// </summary>
+        /// <param name="input">查询程序代码</param>
+        /// <returns>是否运行了语句</returns>
         public bool Interpret(string input)
         {
             //新建一个输入流
@@ -41,24 +96,26 @@ namespace gamesScoreSystem
             tokens = new CommonTokenStream(lexer);
             //新建一个语法分析器
             parser = new InterpreterParser(tokens);
-            //针对xxx规则，开始分析
+            //针对程序规则，开始分析
             var tree = parser.prog();
+
+            //清空栈
+            QueryStack.Clear();
+            ParamsStack.Clear();
+            ParamStack.Clear();
+            FunctionStack.Clear();
 
             //输出解析结果
             //Console.WriteLine(tree.ToStringTree(parser));
 
-            //var testListener = new MyTestListener();
-            //var vistor = new MyGrammarVistor();
-
             var walker = new ParseTreeWalker();
+            //遍历树并触发监听器
             walker.Walk(this, tree);
 
-            //var result = vistor.Visit(tree);
-
-            
-            //Console.WriteLine(result);
             return true;
         }
+
+        //以下函数表示进入/退出某一个语法的事件
 
         public override void EnterStat([NotNull] InterpreterParser.StatContext context)
         {
@@ -123,10 +180,15 @@ namespace gamesScoreSystem
         public override void ExitStat([NotNull] InterpreterParser.StatContext context)
         {
             rootQuery.Exec();
-            if(!fade)
+            if (!fade)
                 rootQuery.Output();
         }
 
+        /// <summary>
+        /// 根据读取到param语法内容创建参数
+        /// </summary>
+        /// <param name="ctx">读取到的语法内容</param>
+        /// <returns>创建的参数</returns>
         public Param CreateParam(InterpreterParser.ParamContext ctx)
         {
             if (ctx.ID().Length == 1)

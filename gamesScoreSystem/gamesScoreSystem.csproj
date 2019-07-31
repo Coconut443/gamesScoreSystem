@@ -53,12 +53,14 @@
     <Compile Include="DataBase.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="Field.cs" />
+    <Compile Include="Function.cs" />
     <Compile Include="Interpreter.g4.lexer.cs">
       <DependentUpon>Interpreter.g4</DependentUpon>
     </Compile>
     <Compile Include="Interpreter.g4.parser.cs">
       <DependentUpon>Interpreter.g4</DependentUpon>
     </Compile>
+    <Compile Include="Param.cs" />
     <Compile Include="PreQuery.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

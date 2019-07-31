@@ -1,50 +1,111 @@
-﻿using System;
+﻿//会话类
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
-using System.IO;
 using System.Xml.Linq;
 
 namespace gamesScoreSystem
 {
+    /// <summary>
+    /// 会话类
+    /// </summary>
     class Session
     {
+        /// <summary>
+        /// 数据库路径字典
+        /// </summary>
         Dictionary<string, string> dataBasePath;
+
+        /// <summary>
+        /// 当前会话设置（未使用）
+        /// </summary>
         Dictionary<string, string> settings;
+
+        /// <summary>
+        /// 当前会话的主查询解释器
+        /// </summary>
         public QueryInterpreter queryInterpreter;
+
+        /// <summary>
+        /// 当前会话的主计数器
+        /// </summary>
         Stopwatch stopwatch = new Stopwatch();
+
+        /// <summary>
+        /// 当前使用的数据库
+        /// </summary>
         DataBase dataBase;
+
+        /// <summary>
+        /// 程序传入参数
+        /// </summary>
         private string[] args;
 
+        /// <summary>
+        /// 是否输入了Clear指令
+        /// </summary>
         bool isCleard = false;
 
+        /// <summary>
+        /// 空构造函数
+        /// </summary>
         public Session()
         {
         }
 
+        /// <summary>
+        /// 有传入参数的构造函数
+        /// </summary>
+        /// <param name="args">传入参数</param>
         public Session(string[] args)
         {
             this.args = args;
         }
 
+        /// <summary>
+        /// 当前使用的数据库
+        /// </summary>
         internal DataBase DataBase { get => dataBase; set => dataBase = value; }
 
+        /// <summary>
+        /// 启动会话
+        /// </summary>
         public void Start()
         {
-            Welcome();
-            LoadSettings();
-            queryInterpreter = new QueryInterpreter(this);
-            if (args != null && args.Length == 1)
-                Load(args[0]);
+            try
+            {
+                Welcome();
+                LoadSettings();
+                queryInterpreter = new QueryInterpreter(this);
+                if (args != null && args.Length == 1)
+                    Load(args[0]);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
             while (true)
             {
-                Cycle();
+                try
+                {
+                    Cycle();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+
             }
+
         }
 
+        /// <summary>
+        /// 进入查询循环
+        /// </summary>
         public void Cycle()
         {
             Console.Write("\n" + DateTime.Now.ToShortTimeString() + " > ");
@@ -64,9 +125,12 @@ namespace gamesScoreSystem
                 }
                 Console.Write("      > ");
             }
-            
+
         }
 
+        /// <summary>
+        /// 加载数据库路径
+        /// </summary>
         private void LoadSettings()
         {
             dataBasePath = new Dictionary<string, string>();
@@ -85,6 +149,9 @@ namespace gamesScoreSystem
             }
         }
 
+        /// <summary>
+        /// 保存数据库路径
+        /// </summary>
         private void SaveSettings()
         {
             FileStream fileStream = new FileStream("settings.ini", FileMode.Create);
@@ -94,11 +161,14 @@ namespace gamesScoreSystem
             streamWriter.Close();
         }
 
-        //加载XML文档
         //以下都已经鸽了
         //TODO:适当优化当前的混乱写法，使之更具有可读性
         //TODO:为XML文档编写验证文件或方法
         //TODO:添加关键词过滤器，不允许与关键词一致
+        /// <summary>
+        /// 加载XML数据库文件
+        /// </summary>
+        /// <param name="path">文件路径</param>
         public void Load(string path)
         {
             //进行计时
@@ -153,7 +223,7 @@ namespace gamesScoreSystem
             //读取数据库级字段的数量
             reader.ReadToFollowing("fields");
             entityFieldNums["database"] = 0;
-            while(!reader.EOF && reader.Name != "fields")
+            while (!reader.EOF && reader.Name != "fields")
             {
                 if (reader.NodeType == XmlNodeType.Element && reader.Name == "field")
                     entityFieldNums["database"]++;
@@ -171,8 +241,9 @@ namespace gamesScoreSystem
                 string entityName = reader.Name.Substring(0, reader.Name.Length - 1);
                 int count = 0;
                 reader.Read();
-                while (reader.Name != entityName + "s") {
-                    if(reader.NodeType == XmlNodeType.Element &&  reader.Name == entityName)
+                while (reader.Name != entityName + "s")
+                {
+                    if (reader.NodeType == XmlNodeType.Element && reader.Name == entityName)
                     {
                         ++count;
                     }
@@ -194,11 +265,11 @@ namespace gamesScoreSystem
             reader.ReadToFollowing("settings");
             while (reader.Read())
             {
-                if(reader.Name == "settings")
+                if (reader.Name == "settings")
                 {
                     break;
                 }
-                if(reader.NodeType == XmlNodeType.Element)
+                if (reader.NodeType == XmlNodeType.Element)
                 {
                     settings.Add(reader.Name, reader.Value);
                 }
@@ -211,7 +282,7 @@ namespace gamesScoreSystem
             int entityCnt = entityNums.Count;
             dataBase.Entities = new Entity[entityCnt];
             int entityIndex = 0;
-            for(int i = 0; i < entityCnt; ++i)
+            for (int i = 0; i < entityCnt; ++i)
             {
                 reader.ReadToFollowing("entity");
                 string entityName = reader.GetAttribute("name");
@@ -220,21 +291,21 @@ namespace gamesScoreSystem
                 Entity entity = new Entity(entityName, entityNum);
                 Field[] fields = new Field[fieldNum];
                 int fieldIndex = 0;
-                for(int j = 0; j < fieldNum; ++j)
+                for (int j = 0; j < fieldNum; ++j)
                 {
                     string name = "";
                     string type = "";
                     Constraint[] constraints = null;
-                    
+
                     reader.ReadToFollowing("field");
-                    
-                    while(reader.Read() && !reader.EOF && reader.Name != "field")
+
+                    while (reader.Read() && !reader.EOF && reader.Name != "field")
                     {
                         if (reader.Name == "name" && reader.NodeType == XmlNodeType.Element)
                             name = reader.ReadInnerXml();
                         else if (reader.Name == "type" && reader.NodeType == XmlNodeType.Element)
                             type = reader.ReadInnerXml();
-                        else if(reader.Name == "constraints" && reader.NodeType == XmlNodeType.Element)
+                        else if (reader.Name == "constraints" && reader.NodeType == XmlNodeType.Element)
                         {
                             //几种XML方法的混写主要是由于完全不熟练（
                             XElement element = XNode.ReadFrom(reader) as XElement;
@@ -245,12 +316,12 @@ namespace gamesScoreSystem
                                 XElement[] constraintNodes = element.Descendants("constraint").ToArray();
                                 constraints = new Constraint[constraintNodes.Length];
                                 int k = 0;
-                                foreach(var node in constraintNodes)
+                                foreach (var node in constraintNodes)
                                 {
                                     string constraintType = node.Attribute("type").Value;
                                     string[] data = node.Descendants("data").Select(x => x.Value).ToArray();
-                                    var constraint = ConstraintFactory.Create(constraintType,data);
-                                    if(constraint is VirtualConstraint)
+                                    var constraint = ConstraintFactory.Create(constraintType, data);
+                                    if (constraint is VirtualConstraint)
                                     {
                                         var virtualConstraint = constraint as VirtualConstraint;
                                         virtualConstraint.RefSession = this;
@@ -265,7 +336,7 @@ namespace gamesScoreSystem
                             }
                         }
                     }
-                    if(constraints == null)
+                    if (constraints == null)
                     {
                         constraints = new Constraint[0];
                     }
@@ -281,12 +352,12 @@ namespace gamesScoreSystem
             int dbFieldNum = fieldNodes.Length;
             dataBase.Fields = new Field[dbFieldNum];
             int dbFieldIndex = 0;
-            foreach(var fieldNode in fieldNodes)
+            foreach (var fieldNode in fieldNodes)
             {
                 var constraintNodes = fieldNode.Descendants("constraint").ToArray();
                 var constraints = new Constraint[constraintNodes.Length];
                 int constraintsIndex = 0;
-                foreach(var node in constraintNodes)
+                foreach (var node in constraintNodes)
                 {
                     string constraintType = node.Attribute("type").Value;
                     string[] data = node.Descendants("data").Select(x => x.Value).ToArray();
@@ -302,12 +373,13 @@ namespace gamesScoreSystem
             }
             //读取数据
             reader.ReadToFollowing("entitydata");
-            foreach(Entity entity in dataBase.Entities) {
-                for(int i = 1; i <= entity.Length; ++i)
+            foreach (Entity entity in dataBase.Entities)
+            {
+                for (int i = 1; i <= entity.Length; ++i)
                 {
-                    foreach(Field field in entity.Fields)
+                    foreach (Field field in entity.Fields)
                     {
-                        if(!Array.Exists(field.Constraints,x=>x is VirtualConstraint))
+                        if (!Array.Exists(field.Constraints, x => x is VirtualConstraint))
                         {
                             reader.ReadToFollowing(field.Name);
                             field[i] = reader.ReadInnerXml();
@@ -317,9 +389,9 @@ namespace gamesScoreSystem
                 }
             }
             reader.ReadToFollowing("fielddata");
-            foreach(Field field in dataBase.Fields)
+            foreach (Field field in dataBase.Fields)
             {
-                if(!Array.Exists(field.Constraints, x=>x is VirtualConstraint))
+                if (!Array.Exists(field.Constraints, x => x is VirtualConstraint))
                 {
                     reader.ReadToFollowing(field.Name);
                     field[1] = reader.ReadInnerXml();
@@ -345,7 +417,7 @@ namespace gamesScoreSystem
             //转为数据文件
             if (!dataBasePath.ContainsKey(dataBaseName))
             {
-                BinaryWriter writer = new BinaryWriter(new FileStream(dataBaseName + ".data",FileMode.Create));
+                BinaryWriter writer = new BinaryWriter(new FileStream(dataBaseName + ".data", FileMode.Create));
                 dataBase.Save(writer);
                 writer.Close();
 
@@ -355,12 +427,18 @@ namespace gamesScoreSystem
             Console.WriteLine(String.Format("数据文件保存成功，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
         }
 
+        /// <summary>
+        /// 清屏
+        /// </summary>
         public void Clear()
         {
             Console.Clear();
             isCleard = true;
         }
 
+        /// <summary>
+        /// 退出会话
+        /// </summary>
         public void Exit()
         {
             Console.WriteLine("bye");
@@ -368,6 +446,9 @@ namespace gamesScoreSystem
             Environment.Exit(0);
         }
 
+        /// <summary>
+        /// 输出初始信息
+        /// </summary>
         public void Welcome()
         {
             Console.WriteLine("Welcome to Games Score System. " +
@@ -378,17 +459,27 @@ namespace gamesScoreSystem
                 "\nType 'help' for help. Type 'clear' to clear the screen.\n");
         }
 
-        //TODO:补全帮助函数
+        /// <summary>
+        /// 帮助函数（并没有完成）
+        /// </summary>
         public void Help()
         {
             Console.WriteLine("这里是全部的帮助信息");
         }
 
+        /// <summary>
+        /// 特定于某一指令的帮助函数（并没有完成）
+        /// </summary>
+        /// <param name="cmd"></param>
         public void Help(string cmd)
         {
-            Console.WriteLine("这里是"+cmd+"的帮助信息");
+            Console.WriteLine("这里是" + cmd + "的帮助信息");
         }
 
+        /// <summary>
+        /// 输出数据库、实体、字段等信息
+        /// </summary>
+        /// <param name="param">信息参数</param>
         public void Show(Param param)
         {
             if (param is IdParam)
@@ -438,6 +529,11 @@ namespace gamesScoreSystem
             else Help("show");
         }
 
+        /// <summary>
+        /// 格式化输出器
+        /// </summary>
+        /// <param name="name">表头</param>
+        /// <param name="str">单个数据</param>
         public static void OutputData(string name, string str)
         {
             int len = Encoding.GetEncoding("gb2312").GetBytes(name + str).Length;
@@ -447,21 +543,26 @@ namespace gamesScoreSystem
             Console.WriteLine(divideLine);
         }
 
+        /// <summary>
+        /// 格式化输出器
+        /// </summary>
+        /// <param name="name">表头</param>
+        /// <param name="vs">一列数据</param>
         public static void OutputData(string name, IEnumerable<string> vs)
         {
             int cnt = 0;
             List<string> list = new List<string>();
-            foreach(var str in vs)
+            foreach (var str in vs)
             {
                 ++cnt;
-                if(cnt > PublicValue.OutputLimit)
+                if (cnt > PublicValue.OutputLimit)
                 {
                     list.Add("...");
                     break;
                 }
                 list.Add(str);
             }
-            if(cnt == 0)
+            if (cnt == 0)
             {
                 Console.WriteLine("no " + name + ".");
                 return;
@@ -474,10 +575,10 @@ namespace gamesScoreSystem
             Console.WriteLine(divideLine);
             Console.WriteLine("| " + name + new string(' ', maxLen - Encoding.GetEncoding("gb2312").GetBytes(name).Length) + " |");
             Console.WriteLine(divideLine);
-            foreach(var str in list)
+            foreach (var str in list)
                 Console.WriteLine("| " + str + new string(' ', maxLen - Encoding.GetEncoding("gb2312").GetBytes(str).Length) + " |");
             Console.WriteLine(divideLine);
-            if(cnt > PublicValue.OutputLimit)
+            if (cnt > PublicValue.OutputLimit)
             {
                 Console.Write(">");
                 --cnt;
@@ -486,13 +587,18 @@ namespace gamesScoreSystem
             Console.Write(cnt + " rows ");
         }
 
+        /// <summary>
+        /// 格式化输出器
+        /// </summary>
+        /// <param name="nameList">表头</param>
+        /// <param name="vss">多行列数据</param>
         public static void OutputData(IEnumerable<string> nameList, IEnumerable<IEnumerable<string>> vss)
         {
             string[] names = nameList.ToArray();
             int[] maxLens = nameList.Select(x => Encoding.GetEncoding("gb2312").GetBytes(x).Length).ToArray();
             List<string[]> lss = new List<string[]>();
             int cnt = 0;
-            foreach(var vs in vss)
+            foreach (var vs in vss)
             {
                 ++cnt;
                 if (cnt > PublicValue.OutputLimit)
@@ -511,13 +617,13 @@ namespace gamesScoreSystem
                         maxLens[i] = len;
                 }
             }
-            var divideLine = "+" + String.Join( "+", maxLens.Select(x => new string('-',x+2))) + "+";
+            var divideLine = "+" + String.Join("+", maxLens.Select(x => new string('-', x + 2))) + "+";
             Console.WriteLine(divideLine);
-            for(int i = 0; i<maxLens.Length; ++i)
+            for (int i = 0; i < maxLens.Length; ++i)
                 Console.Write("| " + names[i] + new string(' ', maxLens[i] - Encoding.GetEncoding("gb2312").GetBytes(names[i]).Length) + " ");
             Console.WriteLine("|");
             Console.WriteLine(divideLine);
-            foreach(var ls in lss)
+            foreach (var ls in lss)
             {
                 for (int i = 0; i < maxLens.Length; ++i)
                     Console.Write("| " + ls[i] + new string(' ', maxLens[i] - Encoding.GetEncoding("gb2312").GetBytes(ls[i]).Length) + " ");
@@ -533,11 +639,14 @@ namespace gamesScoreSystem
             Console.Write(cnt + " rows ");
         }
 
-
+        /// <summary>
+        /// 转到某个在数据库路径中的数据库
+        /// </summary>
+        /// <param name="databaseName">数据库标识名</param>
         public void Use(string databaseName)
         {
             if (!dataBasePath.ContainsKey(databaseName))
-                throw new Exception("不存在名为"+databaseName+"的数据库");
+                throw new Exception("不存在名为" + databaseName + "的数据库");
             dataBase = new DataBase();
             BinaryReader reader = new BinaryReader(new FileStream(dataBasePath[databaseName], FileMode.Open));
             dataBase.Load(reader);
@@ -548,22 +657,32 @@ namespace gamesScoreSystem
             Console.WriteLine("数据库" + databaseName + "加载完成");
         }
 
+        /// <summary>
+        /// 删除某个在数据库路径中的数据库记录及其文件
+        /// </summary>
+        /// <param name="databaseName"></param>
         public void Drop(string databaseName)
         {
-            if(!dataBasePath.ContainsKey(databaseName))
+            if (!dataBasePath.ContainsKey(databaseName))
                 throw new Exception("不存在名为" + databaseName + "的数据库");
             dataBasePath.Remove(databaseName);
             if (File.Exists(databaseName + ".data"))
                 File.Delete(databaseName + ".data");
-            Console.WriteLine("数据库"+databaseName+"已被删除");
+            Console.WriteLine("数据库" + databaseName + "已被删除");
+            dataBase = null;
         }
 
+        /// <summary>
+        /// 执行全局函数
+        /// </summary>
+        /// <param name="function">待执行的函数</param>
+        /// <returns>是否执行了全局函数</returns>
         public bool ExecFunction(Function function)
         {
             switch (function.functionName)
             {
                 case "load":
-                    if(function.Params.Count != 1 || !(function.Params[0] is StringParam))
+                    if (function.Params.Count != 1 || !(function.Params[0] is StringParam))
                         throw new Exception("load函数参数错误，应为load(\"path\")");
                     Load((function.Params[0] as StringParam).Value);
                     break;
@@ -590,7 +709,7 @@ namespace gamesScoreSystem
                     Show(function.Params[0]);
                     break;
                 case "use":
-                    if(function.Params.Count != 1 || !(function.Params[0] is IdParam))
+                    if (function.Params.Count != 1 || !(function.Params[0] is IdParam))
                         throw new Exception("use函数参数错误，应为use(database)");
                     Use((function.Params[0] as IdParam).Value);
                     break;
