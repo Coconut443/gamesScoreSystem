@@ -17,8 +17,18 @@ namespace gamesScoreSystem
         public QueryInterpreter queryInterpreter;
         Stopwatch stopwatch = new Stopwatch();
         DataBase dataBase;
+        private string[] args;
 
         bool isCleard = false;
+
+        public Session()
+        {
+        }
+
+        public Session(string[] args)
+        {
+            this.args = args;
+        }
 
         internal DataBase DataBase { get => dataBase; set => dataBase = value; }
 
@@ -27,6 +37,8 @@ namespace gamesScoreSystem
             Welcome();
             LoadSettings();
             queryInterpreter = new QueryInterpreter(this);
+            if (args != null && args.Length == 1)
+                Load(args[0]);
             while (true)
             {
                 Cycle();
@@ -83,7 +95,8 @@ namespace gamesScoreSystem
         }
 
         //加载XML文档
-        //TODO:适当优化当前的混沌写法，使之更具有可读性
+        //以下都已经鸽了
+        //TODO:适当优化当前的混乱写法，使之更具有可读性
         //TODO:为XML文档编写验证文件或方法
         //TODO:添加关键词过滤器，不允许与关键词一致
         public void Load(string path)
@@ -98,6 +111,9 @@ namespace gamesScoreSystem
             string dataBaseName = reader.GetAttribute("name");
             if (dataBasePath.ContainsKey(dataBaseName))
                 throw new Exception("已有与导入的数据库" + dataBaseName + "重名的数据库");
+            string title = reader.GetAttribute("title");
+            if (title != null && title != "")
+                Console.Title = title;
             //载入文件报时
             Console.WriteLine(String.Format("数据文件发现，耗时{0:0}ms，正在进行载入...", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
             stopwatch.Reset();
@@ -189,6 +205,7 @@ namespace gamesScoreSystem
             }
             DataBase dataBase = new DataBase();
             dataBase.Name = dataBaseName;
+            dataBase.Title = title;
             //读取实体与字段
             reader.ReadToFollowing("entities");
             int entityCnt = entityNums.Count;
@@ -328,12 +345,13 @@ namespace gamesScoreSystem
             //转为数据文件
             if (!dataBasePath.ContainsKey(dataBaseName))
             {
-                dataBasePath[dataBaseName] = dataBaseName + ".data";
                 BinaryWriter writer = new BinaryWriter(new FileStream(dataBaseName + ".data",FileMode.Create));
                 dataBase.Save(writer);
                 writer.Close();
+
             }
             SaveSettings();
+            dataBasePath[dataBaseName] = dataBaseName + ".data";
             Console.WriteLine(String.Format("数据文件保存成功，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
         }
 
@@ -420,6 +438,15 @@ namespace gamesScoreSystem
             else Help("show");
         }
 
+        public static void OutputData(string name, string str)
+        {
+            int len = Encoding.GetEncoding("gb2312").GetBytes(name + str).Length;
+            string divideLine = "+-" + new string('-', len + 3) + "-+";
+            Console.WriteLine(divideLine);
+            Console.WriteLine("| " + name + " | " + str + " |");
+            Console.WriteLine(divideLine);
+        }
+
         public static void OutputData(string name, IEnumerable<string> vs)
         {
             int cnt = 0;
@@ -429,7 +456,7 @@ namespace gamesScoreSystem
                 ++cnt;
                 if(cnt > PublicValue.OutputLimit)
                 {
-                    Console.WriteLine("...");
+                    list.Add("...");
                     break;
                 }
                 list.Add(str);
@@ -458,7 +485,55 @@ namespace gamesScoreSystem
 
             Console.Write(cnt + " rows ");
         }
-        
+
+        public static void OutputData(IEnumerable<string> nameList, IEnumerable<IEnumerable<string>> vss)
+        {
+            string[] names = nameList.ToArray();
+            int[] maxLens = nameList.Select(x => Encoding.GetEncoding("gb2312").GetBytes(x).Length).ToArray();
+            List<string[]> lss = new List<string[]>();
+            int cnt = 0;
+            foreach(var vs in vss)
+            {
+                ++cnt;
+                if (cnt > PublicValue.OutputLimit)
+                {
+                    Console.WriteLine("...");
+                    break;
+                }
+                lss.Add(vs.ToArray());
+            }
+            foreach (var ls in lss)
+            {
+                for (int i = 0; i < maxLens.Length; ++i)
+                {
+                    var len = Encoding.GetEncoding("gb2312").GetBytes(ls[i]).Length;
+                    if (len > maxLens[i])
+                        maxLens[i] = len;
+                }
+            }
+            var divideLine = "+" + String.Join( "+", maxLens.Select(x => new string('-',x+2))) + "+";
+            Console.WriteLine(divideLine);
+            for(int i = 0; i<maxLens.Length; ++i)
+                Console.Write("| " + names[i] + new string(' ', maxLens[i] - Encoding.GetEncoding("gb2312").GetBytes(names[i]).Length) + " ");
+            Console.WriteLine("|");
+            Console.WriteLine(divideLine);
+            foreach(var ls in lss)
+            {
+                for (int i = 0; i < maxLens.Length; ++i)
+                    Console.Write("| " + ls[i] + new string(' ', maxLens[i] - Encoding.GetEncoding("gb2312").GetBytes(ls[i]).Length) + " ");
+                Console.WriteLine("|");
+            }
+            Console.WriteLine(divideLine);
+            if (cnt > PublicValue.OutputLimit)
+            {
+                Console.Write(">");
+                --cnt;
+            }
+
+            Console.Write(cnt + " rows ");
+        }
+
+
         public void Use(string databaseName)
         {
             if (!dataBasePath.ContainsKey(databaseName))
@@ -466,6 +541,8 @@ namespace gamesScoreSystem
             dataBase = new DataBase();
             BinaryReader reader = new BinaryReader(new FileStream(dataBasePath[databaseName], FileMode.Open));
             dataBase.Load(reader);
+            if (dataBase.Title != "")
+                Console.Title = dataBase.Title;
             reader.Close();
             SaveSettings();
             Console.WriteLine("数据库" + databaseName + "加载完成");

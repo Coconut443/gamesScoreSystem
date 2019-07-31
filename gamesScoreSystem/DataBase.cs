@@ -50,6 +50,7 @@ namespace gamesScoreSystem
         public void Save(BinaryWriter writer)
         {
             writer.Write(name);
+            writer.Write(title);
             writer.Write(entities.Length);
             foreach (var entity in entities)
                 entity.Save(writer);
@@ -65,6 +66,7 @@ namespace gamesScoreSystem
         public void Load(BinaryReader reader)
         {
             name = reader.ReadString();
+            title = reader.ReadString();
             entities = new Entity[reader.ReadInt32()];
             for (int i = 0; i < entities.Length; ++i)
             {

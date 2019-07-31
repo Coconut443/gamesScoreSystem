@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -45,6 +46,7 @@ namespace gamesScoreSystem
         private List<string> resultString;
         private int resultNum = 0;
         private bool shouldExec = true;
+        private string path;
 
         public List<int> ResultInt { get => resultInt; set => resultInt = value; }
         public List<string> ResultString { get => resultString; set => resultString = value; }
@@ -164,6 +166,7 @@ namespace gamesScoreSystem
                     if (function.Params.Count != 1 || !(function.Params[0] is StringParam))
                         throw new Exception("csv函数参数应为(\"path\")");
                     streamType = StreamType.Csv;
+                    path = (function.Params[0] as StringParam).Value;
                     break;
                 case "sum":
                     if (function.Params.Count != 0)
@@ -497,10 +500,9 @@ namespace gamesScoreSystem
                 return;
             if(streamType == StreamType.None)
             {
-                //TODO:输出多字段和单数值
                 if(calcType != CalcType.None)
                 {
-                    Console.WriteLine(resultNum);
+                    Session.OutputData("result", ResultNum.ToString());
                 }
                 else if(fields.Count == 1 && fields[0] is IntField && resultInt != null)
                 {
@@ -509,16 +511,14 @@ namespace gamesScoreSystem
                     {
                         var foreignConstraint = constraint as ForeignConstraint;
                         fields = new List<Field>(foreignConstraint.RefEntity.Fields);
-                        foreach (var index in resultInt)
-                        {
-                            Console.Write("id:" + index);
-                            foreach (var field in fields)
-                            {
-                                if (field != null)
-                                    Console.Write(", " + field.Name + ":" + field[index]);
-                            }
-                            Console.WriteLine();
-                        }
+                        var nameList = new string[] { "id" }.Concat(from field in fields where field != null select field.Name);
+                        var data = from index in resultInt
+                                  select new string[] { index.ToString() }.Concat(
+                                    from field in fields
+                                    where field != null
+                                    select field[index]
+                                  );
+                        Session.OutputData(nameList, data);
                     }
                     else Session.OutputData("results", resultInt.Cast<string>());
                 }
@@ -530,20 +530,54 @@ namespace gamesScoreSystem
                 {
                     if (fields.Count == 0 || (fields.Count == 1 && fields[0] == null))
                         fields.AddRange(entity.Fields);
-                    foreach(var index in resultIndex)
-                    {
-                        Console.Write("id:" + index);
-                        foreach(var field in fields)
-                        {
-                            if(field != null)
-                                Console.Write(", " + field.Name + ":" + field[index]);
-                        }
-                        Console.WriteLine();
-                    }
+                    var nameList = new string[] { "id" }.Concat(from field in fields where field != null select field.Name);
+                    var data = from index in resultIndex
+                               select new string[] { index.ToString() }.Concat(
+                                 from field in fields
+                                 where field != null
+                                 select field[index]
+                               );
+                    Session.OutputData(nameList, data);
                 }
             }else if(streamType == StreamType.Csv)
             {
-                //TODO:csv格式输出
+                StreamWriter writer = new StreamWriter(new FileStream(path, FileMode.Create));
+                if (calcType != CalcType.None)
+                    writer.WriteLine("result\n" + ResultNum.ToString());
+                else if (fields.Count == 1 && fields[0] is IntField && resultInt != null)
+                {
+                    var constraint = fields[0].Constraints.FirstOrDefault(x => x is ForeignConstraint);
+                    if (constraint != null)
+                    {
+                        var foreignConstraint = constraint as ForeignConstraint;
+                        fields = new List<Field>(foreignConstraint.RefEntity.Fields);
+                        writer.WriteLine("id," + String.Join(",", from field in fields where field != null select field.Name));
+                        writer.WriteLine(String.Join("\n", from index in resultInt
+                                                           select String.Join(",",new string[] { index.ToString() }.Concat(
+                                                             from field in fields
+                                                             where field != null
+                                                             select field[index]
+                                                           ))));
+                    }
+                    else writer.WriteLine("results\n" + String.Join("\n",resultInt.Cast<string>()));
+                }
+                else if (fields.Count == 1 && fields[0] is CharField && resultString != null)
+                {
+                    writer.WriteLine("results\n" + String.Join("\n", resultString));
+                }
+                else
+                {
+                    if (fields.Count == 0 || (fields.Count == 1 && fields[0] == null))
+                        fields.AddRange(entity.Fields);
+                    writer.WriteLine(String.Join(",",new string[] { "id" }.Concat(from field in fields where field != null select field.Name)));
+                    writer.WriteLine(String.Join("\n", from index in resultIndex
+                                                       select String.Join(",",new string[] { index.ToString() }.Concat(
+                                                         from field in fields
+                                                         where field != null
+                                                         select field[index]
+                                                       ))));
+                }
+                writer.Close();
             }
         }
     }

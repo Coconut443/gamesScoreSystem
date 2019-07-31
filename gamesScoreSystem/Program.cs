@@ -7,7 +7,7 @@ namespace gamesScoreSystem
         static void Main(string[] args)
         {
             //启动一个会话
-            Session session = new Session();
+            Session session = new Session(args);
             session.Start();
             //退出
             Console.ReadKey();
