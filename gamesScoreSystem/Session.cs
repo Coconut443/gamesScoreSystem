@@ -422,8 +422,8 @@ namespace gamesScoreSystem
                 writer.Close();
 
             }
-            SaveSettings();
             dataBasePath[dataBaseName] = dataBaseName + ".data";
+            SaveSettings();
             Console.WriteLine(String.Format("数据文件保存成功，耗时{0:0}ms", 1000 * stopwatch.ElapsedTicks / (decimal)Stopwatch.Frequency));
         }
 
@@ -668,6 +668,7 @@ namespace gamesScoreSystem
             dataBasePath.Remove(databaseName);
             if (File.Exists(databaseName + ".data"))
                 File.Delete(databaseName + ".data");
+            SaveSettings();
             Console.WriteLine("数据库" + databaseName + "已被删除");
             dataBase = null;
         }

@@ -32,7 +32,7 @@
                     <type>int</type>
                     <constraints>
                         <constraint type="virtual">
-                            <data>school.id($id).asc(score).rank()</data>
+                            <data>school.id($id).desc(score).rank()</data>
                         </constraint>
                     </constraints>
                 </field>
@@ -75,7 +75,7 @@
                     <type>int</type>
                     <constraints>
                         <constraint type="virtual">
-                            <data>student.id($id).asc(score).rank()</data>
+                            <data>student.id($id).desc(score).rank()</data>
                         </constraint>
                     </constraints>
                 </field>
